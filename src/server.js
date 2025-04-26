@@ -10,10 +10,9 @@ const connectDB = require('./config/dbConfig');
 const cors = require("cors")
 const app = express();
 const PORT = process.env.PORT || 5000;
-console.log("PORT : " , process.env.PORT )
 // Middlewares
 app.use(cors({
-  origin: 'http://localhost:5176',
+  origin: 'http://localhost:5173',
   credentials: true,
 }));
 
