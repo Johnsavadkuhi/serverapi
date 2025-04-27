@@ -30,6 +30,7 @@ function initializeSocket(server) {
       console.error('JWT auth error:', err);
       return next(new Error('Authentication error: Invalid token'));
     }
+  
   });
 
   io.on('connection', (socket) => {
