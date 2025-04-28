@@ -7,15 +7,14 @@ function registerSocketHandlers(io, socket) {
       console.log(`📨 Message from ${socket.user.username}:`, data);
   
       // Example: Broadcast to everyone except sender
-      socket.broadcast.emit('message', {
+      socket.emit('message', {
         user: socket.user.username,
+        id:socket.user.userId , 
         content: data,
       }); 
     });
   
-    socket.on('disconnect', () => {
-      console.log(`❌ Socket disconnected: ${socket.id}`);
-    });
+   
   }
   
   module.exports = registerSocketHandlers;

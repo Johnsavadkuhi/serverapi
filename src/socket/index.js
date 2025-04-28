@@ -3,6 +3,7 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const Redis             = require('ioredis');
 const jwt               = require('jsonwebtoken');
 const cookie            = require('cookie');
+const registerSocketHandlers = require('./handlers');
 
 module.exports = async function initializeSocket(server) {
   // 1) Create two clients in lazy mode
@@ -48,6 +49,8 @@ module.exports = async function initializeSocket(server) {
     await pubClient.sadd(key, socket.id);
     socket.join(`user:${uid}`);
     console.log(`↔️ [WS] ${uid} connected as ${socket.id}`);
+   
+    registerSocketHandlers(io, socket);
 
     socket.on('disconnect', async () => {
       await pubClient.srem(key, socket.id);

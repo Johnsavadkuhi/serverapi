@@ -5,6 +5,7 @@ const http = require('http');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
 const validateReoutes = require("./routes/validateRoutes")
+const projectRoutes = require("./routes/projectroutes")
 const initializeSocket = require('./socket/');
 const connectDB = require('./config/dbConfig');
 const cors = require("cors")
@@ -24,6 +25,7 @@ connectDB()
 // REST API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/validate' , validateReoutes)
+app.use("/api/projects" , projectRoutes )
 // Create HTTP server
 const server = http.createServer(app);
 
