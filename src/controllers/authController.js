@@ -11,6 +11,7 @@ const login = async (req, res) => {
     }
 
     const user = await User.findOne({ username }).select('+password');
+    console.log("user : " , user )
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
@@ -34,6 +35,13 @@ const login = async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
+        firstName:user.firstName , 
+        lastName : user.lastName , 
+        roles : user.roles , 
+        image:user.profileImageUrl , 
+        score:user.score , 
+        devOps: user.devOps , 
+        userProject:user.userProject
       },
     });
 

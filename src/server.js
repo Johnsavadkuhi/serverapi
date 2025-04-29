@@ -6,9 +6,11 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
 const validateReoutes = require("./routes/validateRoutes")
 const projectRoutes = require("./routes/projectroutes")
+const userRoutes = require("./routes/userRoutes")
 const initializeSocket = require('./socket/');
 const connectDB = require('./config/dbConfig');
-const cors = require("cors")
+const cors = require("cors");
+const { verifyToken } = require('./middleware/verifyToken');
 const app = express();
 const PORT = process.env.PORT || 5000;
 // Middlewares
@@ -25,7 +27,8 @@ connectDB()
 // REST API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/validate' , validateReoutes)
-app.use("/api/projects" , projectRoutes )
+app.use("/api/projects" , verifyToken , projectRoutes )
+app.use("/api/users" , verifyToken , userRoutes)
 // Create HTTP server
 const server = http.createServer(app);
 
