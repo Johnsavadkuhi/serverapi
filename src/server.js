@@ -5,7 +5,7 @@ const http = require('http');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
 const validateReoutes = require("./routes/validateRoutes")
-const projectRoutes = require("./routes/projectroutes")
+const projectRoutes = require("./routes/projectRoutes")
 const userRoutes = require("./routes/userRoutes")
 const initializeSocket = require('./socket/');
 const connectDB = require('./config/dbConfig');
@@ -22,7 +22,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-connectDB()
+connectDB() 
 
 // REST API routes
 app.use('/api/auth', authRoutes);

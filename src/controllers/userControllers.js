@@ -1,3 +1,5 @@
+const project = require("../models/project");
+const ProjectUser = require("../models/ProjectUser");
 const User  = require("../models/User")
 
 const getUsers = async (req , res)=>{
@@ -7,8 +9,98 @@ const getUsers = async (req , res)=>{
 
 }
 
+const assignUser = async (req, res) => {
+  try {
+    // userId is id of manager and it should be set to manager in datbase 
+    const {projectId ,pentesterId , userId , version } = req.body 
+
+
+    if (!projectId || !pentesterId || !userId  || !version) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    // Create or update the project-user relation
+    const projectUser = await ProjectUser.findOneAndUpdate(
+      { project: projectId, pentester: pentesterId },
+      { manager: userId, version },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    // Add relation to both Project and User (if not already there)
+    await Promise.all([
+      project.findByIdAndUpdate(projectId, {
+        $addToSet: { userProject: projectUser._id },
+      }),
+      User.findByIdAndUpdate(pentesterId, {
+        $addToSet: { userProject: projectUser._id },
+      }),
+    ]);
+
+    return res.status(200).json({ message: "Pentester assigned successfully." });
+
+  } catch (error) {
+    console.error("Error assigning pentester:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
+const getAssignedUsers = async (req, res) => {
+
+  const { projectId, userId } = req.query;
+  try {
+
+    
+      const response = await ProjectUser.find({ project: projectId });
+      const pentesters = response.map(item => item.pentester);
+
+      console.log("response : "  , pentesters )
+      res.status(200).json({pentesters});
+
+  } catch (err) {
+      res.status(500).send(err.message || []);
+  }
+
+}
+
+const rmUserAssigned = async (req, res) => {
+
+
+  const { projectId, pentesterId } = req.body
+
+  console.log("project Id : " , projectId , pentesterId)
+
+  try {
+
+      // , version:req.body.version 
+      const result = await ProjectUser.findOneAndDelete({
+          project: projectId, pentester: pentesterId
+      })
+
+
+
+      await project.findByIdAndUpdate(projectId, {
+          $pull: { userProject: result._id },
+      });
+      await User.findByIdAndUpdate(pentesterId, {
+          $pull: { userProject: result._id },
+      });
+
+      res.status(200).json("delted")
+
+  } catch (err) {
+      console.log(err)
+      res.status(500).json(err)
+
+  }
+
+
+
+}
+
+
 
 module.exports = {
-getUsers 
+getUsers , assignUser , getAssignedUsers , rmUserAssigned 
   };
   
