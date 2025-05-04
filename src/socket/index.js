@@ -10,58 +10,79 @@ module.exports = async function initializeSocket(server) {
   const pubClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
   const subClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
 
-  // 2) Manually connect them in parallel
   await Promise.all([
     pubClient.connect(),
     subClient.connect()
   ]);
 
-  // 3) Set up Socket.IO + Redis adapter
-  const io = new Server(server, {
-    cors: { origin: 'http://localhost:5173', methods: ['GET', 'POST'],credentials: true }
-  });
+// 2) Set up Socket.IO server
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+
+  // 3) Connect Redis adapter to Socket.IO
   io.adapter(createAdapter(pubClient, subClient));
 
-  // 4) Auth middleware (parse cookie → verify JWT)
-  io.use((socket, next) => {
-    try {
-       const raw = socket.handshake.headers.cookie || '';
-       const { token } = cookie.parse(raw);
-       const payload   = jwt.verify(token, process.env.JWT_SECRET);
-      
-     socket.user = payload 
+// 4) Auth middleware: parse cookies + verify JWT
+io.use((socket, next) => {
+  try {
+    const rawCookie = socket.handshake.headers.cookie || '';
+    const { token } = cookie.parse(rawCookie || '');
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = payload;
+    next();
+  } catch (err) {
+    console.error('❌ JWT Auth failed:', err.message);
+    next(new Error('Authentication error'));
+  }
+});
 
-      
-     next();
-    } catch(e) {
-        console.log("e : " , e )
-      next(new Error('Authentication error 1111'));
+
+  // 5) Connection handler
+  io.on('connection', async socket => {
+    const uid = socket.user.userId;
+    const redisKey = `user:sockets:${uid}`;
+
+    try {
+      // ✅ Remove stale sockets (optional)
+      const oldSockets = await pubClient.smembers(redisKey);
+      const staleSockets = oldSockets.filter(id => id !== socket.id);
+      if (staleSockets.length > 0) {
+        await pubClient.srem(redisKey, ...staleSockets);
+      }
+
+      // ✅ Save new socket
+      await pubClient.sadd(redisKey, socket.id);
+
+      // ✅ Join user-specific room
+      socket.join(`user:${uid}`);
+
+      console.log(`✅ [WS] ${uid} connected via socket ${socket.id}`);
+
+      // ✅ Register per-socket event handlers
+      registerSocketHandlers(io, socket);
+
+      // ✅ Handle disconnection
+      socket.on('disconnect', async () => {
+        await pubClient.srem(redisKey, socket.id);
+        const remaining = await pubClient.scard(redisKey);
+        if (remaining === 0) {
+          console.log(`❌ [WS] ${uid} fully disconnected`);
+        } else {
+          console.log(`↔️ [WS] ${uid} still has ${remaining} socket(s)`);
+        }
+      });
+
+    } catch (e) {
+      console.error(`❌ Error handling connection for ${uid}:`, e.message);
     }
   });
 
-  // 5) Track connect / disconnect in a Redis Set
-  io.on('connection', async socket => {
-    console.log("in connection ")
-    const uid = socket.user.userId;
-    const key = `user:sockets:${uid}`;
-
-    // add this socket
-    await pubClient.sadd(key, socket.id);
-    socket.join(`user:${uid}`);
-    console.log(`↔️ [WS] ${uid} connected as ${socket.id}`);
-   
-    registerSocketHandlers(io, socket);
-
-    socket.on('disconnect', async () => {
-      await pubClient.srem(key, socket.id);
-      const remaining = await pubClient.scard(key);
-      if (remaining === 0) {
-        console.log(`❌ [WS] ${uid} offline`);
-      } else {
-        console.log(`↔️ [WS] ${uid} still has ${remaining} socket(s)`);
-      }
-    });
-  });
-
+  
   console.log('✅ Socket.IO + Redis adapter ready');
 };
