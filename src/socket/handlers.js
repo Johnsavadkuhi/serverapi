@@ -1,13 +1,14 @@
+const project = require("../models/project");
 
 
 function registerSocketHandlers(io, socket) {
   
   socket.on("assignUserProject" ,async  (data)=>{
-    console.log("data : " , data)
-    
+    console.log("data ************* : " , data)
+    io.to(`user:${data}`).emit("assignedUser","ok")
   })
 
-  
+
     // Every event here is already authenticated
     socket.on('message', (data) => {
       console.log(`📨 Message from ${socket.user.username}:`, data);
