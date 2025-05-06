@@ -1,10 +1,14 @@
-const project = require("../models/project");
+// const project = require("../models/project");
+
+const { assignProjectToUser } = require("../notif/assignProjectToUser");
 
 
 function registerSocketHandlers(io, socket) {
   
   socket.on("assignUserProject" ,async  (data)=>{
-    io.to(`user:${data}`).emit("assignedUser","ok")
+    // io.to(`user:${data}`).emit("assignedUser","ok")
+    console.log("data ***** : " , data )
+    // assignProjectToUser()
   })
 
 
