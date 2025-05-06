@@ -65,7 +65,7 @@ io.use((socket, next) => {
       console.log(`✅ [WS] ${uid} connected via socket ${socket.id}`);
 
       // ✅ Register per-socket event handlers
-      registerSocketHandlers(io, socket);
+      registerSocketHandlers(io, socket , pubClient);
 
       // ✅ Handle disconnection
       socket.on('disconnect', async () => {

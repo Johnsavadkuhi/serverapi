@@ -3,12 +3,12 @@
 const { assignProjectToUser } = require("../notif/assignProjectToUser");
 
 
-function registerSocketHandlers(io, socket) {
+function registerSocketHandlers(io, socket , pubClient) {
   
-  socket.on("assignUserProject" ,async  (data)=>{
+  socket.on("assignUserProject" ,async  ({projectId , pentesterId , adminId })=>{
     // io.to(`user:${data}`).emit("assignedUser","ok")
-    console.log("data ***** : " , data )
-    // assignProjectToUser()
+    console.log("data *****f : " , await projectId , pentesterId , adminId , "\n" ,  )
+    assignProjectToUser(projectId , pentesterId , adminId , io , pubClient )
   })
 
 
