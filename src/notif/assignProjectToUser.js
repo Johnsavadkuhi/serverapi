@@ -1,6 +1,6 @@
 const Notification = require('../models/Notification');
 
-async function assignProjectToUser(projectId, assignedUserId, adminId, io, pubClient) {
+async function assignProjectToUser(projectId, assignedUserId, adminId , projectName , io, pubClient) {
   
   const notification = await Notification.create({
     userId: assignedUserId,
@@ -8,11 +8,11 @@ async function assignProjectToUser(projectId, assignedUserId, adminId, io, pubCl
     type: 'projectAssigned',
     category: 'project',
     title: 'New Project',
-    message: 'A new project assigne to you.',
+    message: `${projectName}`,
     icon: '📁',
-    link: `/projects/${projectId}`,
+    link: `/projects/#${projectId}`,
     data: { projectId, assignedBy: adminId },
-    priority: 'high'
+    priority: 'normal'
   });
 
   // 2. بررسی آنلاین بودن کاربر و ارسال نوتیف

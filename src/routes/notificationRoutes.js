@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 
-// همه نوتیف‌های کاربر
 router.get('/', async (req, res) => {
   const userId = req.user.id;
   const notifications = await Notification.find({ userId }).sort({ createdAt: -1 }).limit(50);

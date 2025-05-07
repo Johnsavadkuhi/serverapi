@@ -1,15 +1,20 @@
 // const project = require("../models/project");
 
 const { assignProjectToUser } = require("../notif/assignProjectToUser");
+const { unassignProjectFromUser } = require("../notif/unassignProjectFromUser");
 
 
 function registerSocketHandlers(io, socket , pubClient) {
   
-  socket.on("assignUserProject" ,async  ({projectId , pentesterId , adminId })=>{
-    // io.to(`user:${data}`).emit("assignedUser","ok")
-    console.log("data *****f : " , await projectId , pentesterId , adminId , "\n" ,  )
-    assignProjectToUser(projectId , pentesterId , adminId , io , pubClient )
+  socket.on("assignUserProject" ,async  ({projectId , pentesterId , adminId , projectName })=>{
+    assignProjectToUser(projectId , pentesterId , adminId , projectName , io , pubClient )
   })
+
+  socket.on("unAssignUserProject" ,async  ({projectId , pentesterId , adminId , projectName })=>{
+    unassignProjectFromUser(projectId , pentesterId  , io , pubClient )
+    console.log("remove proejct from user : " , projectId , pentesterId , adminId )
+  })
+  
 
 
     // Every event here is already authenticated

@@ -6,6 +6,7 @@ const cookie            = require('cookie');
 const registerSocketHandlers = require('./handlers');
 
 module.exports = async function initializeSocket(server) {
+
   // 1) Create two clients in lazy mode
   const pubClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
   const subClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
@@ -38,7 +39,7 @@ io.use((socket, next) => {
     next();
   } catch (err) {
     console.error('❌ JWT Auth failed:', err.message);
-    next(new Error('Authentication error'));
+    next(new Error('Authentication error see '));
   }
 });
 
