@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const validateReoutes = require("./routes/validateRoutes")
 const projectRoutes = require("./routes/projectRoutes")
 const userRoutes = require("./routes/userRoutes")
+const notificationRoutes = require("./routes/notificationRoutes")
 const initializeSocket = require('./socket/');
 const connectDB = require('./config/dbConfig');
 const cors = require("cors");
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/validate' , validateReoutes)
 app.use("/api/projects" , verifyToken , projectRoutes )
 app.use("/api/users" , verifyToken , userRoutes)
+app.use("/api/notification" , verifyToken ,notificationRoutes )
 // Create HTTP server
 const server = http.createServer(app);
 

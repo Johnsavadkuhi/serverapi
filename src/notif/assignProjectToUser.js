@@ -1,14 +1,14 @@
 const Notification = require('../models/Notification');
 
 async function assignProjectToUser(projectId, assignedUserId, adminId, io, pubClient) {
-  // 1. ایجاد نوتیف در MongoDB
+  
   const notification = await Notification.create({
     userId: assignedUserId,
     fromUserId: adminId,
     type: 'projectAssigned',
     category: 'project',
-    title: 'پروژه جدید',
-    message: 'یک پروژه جدید به شما اختصاص یافت.',
+    title: 'New Project',
+    message: 'A new project assigne to you.',
     icon: '📁',
     link: `/projects/${projectId}`,
     data: { projectId, assignedBy: adminId },
