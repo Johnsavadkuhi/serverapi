@@ -25,6 +25,7 @@ async function assignProjectToUser(projectId, assignedUserId, adminId , projectN
 
     sockets.forEach(sid => {
       io.to(sid).emit('notification:new', notification);
+      io.to(sid).emit("newProjectForUser" , projectName)
     });
   }
 }

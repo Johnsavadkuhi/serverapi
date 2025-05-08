@@ -8,6 +8,7 @@ function registerSocketHandlers(io, socket , pubClient) {
   
   socket.on("assignUserProject" ,async  ({projectId , pentesterId , adminId , projectName })=>{
     assignProjectToUser(projectId , pentesterId , adminId , projectName , io , pubClient )
+    
   })
 
   socket.on("unAssignUserProject" ,async  ({projectId , pentesterId , adminId , projectName })=>{

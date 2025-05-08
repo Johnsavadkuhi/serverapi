@@ -58,7 +58,7 @@ const projectSchema = new Schema({
     }],
 
     description: [String],
-    expireDay: { type: Number, required: true },
+    expireDay: { type: Date, required: true },
 
     created_date: {
         type: Date,

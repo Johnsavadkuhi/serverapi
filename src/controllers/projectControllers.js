@@ -4,7 +4,9 @@ const ProjectUser = require("../models/ProjectUser")
 const getUserProjects = async (req , res)=>{
 
   const userId  = req.query.userId 
-  const userProjects = await ProjectUser.find({pentester:userId}) 
+  const userProjects = await ProjectUser.find({pentester:userId})
+  .populate('project', 'projectName expireDay')
+  .populate('manager' , 'firstName , lastName'  ).sort({_id:-1}) 
    res.status(200).json({"projects":userProjects})
 
 }

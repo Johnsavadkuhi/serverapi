@@ -24,13 +24,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 connectDB() 
-
+ 
 // REST API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/validate' , validateReoutes)
 app.use("/api/projects" , verifyToken , projectRoutes )
 app.use("/api/users" , verifyToken , userRoutes)
-app.use("/api/notification" , verifyToken ,notificationRoutes )
+app.use("/api/notification"  ,notificationRoutes )
 // Create HTTP server
 const server = http.createServer(app);
 
