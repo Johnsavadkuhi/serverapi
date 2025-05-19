@@ -27,6 +27,7 @@ function sanitizeIds(node) {
     try {
 
        const result = await WstgModel.find({})
+       
        res.status(200).json({result})
 
     }catch(err){
