@@ -1,6 +1,7 @@
 const project = require("../models/project");
 const ProjectUser = require("../models/ProjectUser");
 const User  = require("../models/User")
+const WebOwasp = require("../config/owasp_wstg_data")
 
 const getUsers = async (req , res)=>{
   
@@ -9,6 +10,20 @@ const getUsers = async (req , res)=>{
 
 }
 
+
+// تابع بازگشتی تبدیل به قالب BugSchema
+function convertToBugSchemaFormat(node) {
+  const { id, label, labelfa, wstg, children = [] } = node;
+
+  return {
+    id,
+    label,
+    labelfa,
+    wstg: wstg || null,
+    status: 'notAttempted',
+    children: children.map(convertToBugSchemaFormat)
+  };
+}
 const assignUser = async (req, res) => {
   try {
     // userId is id of manager and it should be set to manager in datbase 
@@ -19,10 +34,12 @@ const assignUser = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
+        const bugScopes = WebOwasp.map(convertToBugSchemaFormat);
+
     // Create or update the project-user relation
     const projectUser = await ProjectUser.findOneAndUpdate(
       { project: projectId, pentester: pentesterId },
-      { manager: userId, version },
+      { manager: userId ,bugScopes,  version },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
@@ -98,9 +115,29 @@ const rmUserAssigned = async (req, res) => {
 
 }
 
+const getBugScopes  = async(req , res)=>{
+
+  const {projectId , userId , managerId } = req.query 
+  console.log("proejct id : "  , projectId , userId , managerId)
+   try {
+    const projectUser = await ProjectUser.findOne({
+      project: projectId,  
+      pentester: userId  
+    });
+
+    console.log("projectUser : " , projectUser )
+    if (!projectUser) {
+      return res.status(404).json({ message: "ProjectUser not found." });
+    }
+
+    return res.json({ bugScopes: projectUser.bugScopes });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
 
 
 module.exports = {
-getUsers , assignUser , getAssignedUsers , rmUserAssigned 
+getUsers , assignUser , getAssignedUsers , rmUserAssigned , getBugScopes
   };
   

@@ -7,7 +7,7 @@ const BugSchema = new mongoose.Schema({
     labelfa: String,
     wstg:String,
     status: { type: String, default: 'notAttempted' },
-    children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bug' }] // Reference by ID
+    children: [this]
   });
 
 const ProjectUserSchema = new Schema({
