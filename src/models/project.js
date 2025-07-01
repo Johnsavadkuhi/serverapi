@@ -42,7 +42,7 @@ const projectSchema = new Schema({
         type: mongoose.Types.ObjectId,
         ref: "User"
     },
-    qualityManager: {            
+    qualityManager: {
         type: mongoose.Types.ObjectId,
         ref: "User"
     },
@@ -50,7 +50,10 @@ const projectSchema = new Schema({
         type: [String],
         required: true
     },
-
+    platform: {
+        type: [String],
+        required: true
+    },
 
     userProject: [{
         type: Schema.Types.ObjectId,
@@ -58,7 +61,7 @@ const projectSchema = new Schema({
     }],
 
     description: [String],
-    expireDay: { type: Date, required: true },
+    expireDay: { type: Date, required: false  },
 
     created_date: {
         type: Date,
