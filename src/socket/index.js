@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const { URL } = require('url');
 const registerSocketHandlers = require('./handlers');
-const { instrument } = require("@socket.io/admin-ui");
 
 module.exports = async function initializeSocket(server) {
   // Configuration
@@ -83,10 +82,7 @@ module.exports = async function initializeSocket(server) {
       credentials: true
     }
   });
-instrument(io, {
- auth:false, 
- mode:"development"
-});
+
   // 3) Connect Redis adapter to Socket.IO
   io.adapter(createAdapter(pubClient, subClient));
 

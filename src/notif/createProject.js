@@ -20,7 +20,8 @@ async function getAdminByRoleId() {
 async function createProject(projectId, devOpsId , projectName , io, pubClient) {
   
 const  admin_id =  await getAdminByRoleId(); 
-  const notification = await Notification.create({
+console.log("^^^^^^^^^ admin id^^^^^^^^  : " , admin_id )  
+const notification = await Notification.create({
     userId: admin_id ,
     fromUserId: devOpsId,
     type: 'custom',
@@ -42,6 +43,7 @@ const  admin_id =  await getAdminByRoleId();
     await notification.save();
 
     sockets.forEach(sid => {
+      console.log("sid############# : " , sid )
       io.to(sid).emit('createProjectN', notification);
     //   io.to(sid).emit("createProjectForAdmin" , projectName)
     });

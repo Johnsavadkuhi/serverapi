@@ -50,10 +50,32 @@ const createProject = async (req, res) => {
 
 }
 
+const getBugs = async (req, res) => {
+    const userId = req.query.userId; // No need for `await` on query params
+    const projectId = req.query.projectId;
+
+    console.log("project id : " , projectId )
+    try {
+        // Convert projectId string to ObjectId
+        const projectObjectId = new mongoose.Types.ObjectId(projectId);
+
+        const response = await ProjectUser.findOne({ project: projectObjectId });
+        console.log("response:", response);
+        
+        if (!response) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        res.status(200).json(response);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 
 
 module.exports = {
   getUserProjects,
   getManagerProjects,
-  createProject
+  createProject , 
+  getBugs
 };
