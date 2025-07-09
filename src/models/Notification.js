@@ -15,7 +15,7 @@ const NotificationSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['projectAssigned', 'message', 'alert', 'system', 'custom'],
+    enum: ['projectAssigned', 'message', 'alert', 'system', 'custom' ],
     required: true
   },
   category: {

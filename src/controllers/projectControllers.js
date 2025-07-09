@@ -46,7 +46,7 @@ const createProject = async (req, res) => {
 
   await createdProject.save();
 
-  res.status(201).json({ succss: true })
+  res.status(201).json({ success: true , project:createdProject})
 
 }
 

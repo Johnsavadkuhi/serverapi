@@ -17,7 +17,7 @@ async function assignProjectToUser(projectId, assignedUserId, adminId , projectN
 
   // 2. بررسی آنلاین بودن کاربر و ارسال نوتیف
   const sockets = await pubClient.smembers(`user:sockets:${assignedUserId}`);
-  console.log("sockets ######## : " , sockets)
+ 
   if (sockets.length > 0) {
     notification.deliveredAt = new Date();
     notification.status = 'sent';

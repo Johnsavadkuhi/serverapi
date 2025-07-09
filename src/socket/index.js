@@ -1,89 +1,198 @@
-const { Server }        = require('socket.io');
+const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
-const Redis             = require('ioredis');
-const jwt               = require('jsonwebtoken');
-const cookie            = require('cookie');
+const Redis = require('ioredis');
+const jwt = require('jsonwebtoken');
+const cookie = require('cookie');
+const { URL } = require('url');
 const registerSocketHandlers = require('./handlers');
+const { instrument } = require("@socket.io/admin-ui");
 
 module.exports = async function initializeSocket(server) {
+  // Configuration
+  const config = {
+    allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:5173',
+      'http://localhost:3000', 
+      'http://localhost:4000',
+      'https://admin.socket.io'
+    ],
+    redisOptions: {
+      lazyConnect: true,
+      reconnectOnError: (err) => {
+        console.error('Redis connection error:', err.message);
+        return true; // Reconnect on error
+      },
+      maxRetriesPerRequest: 3
+    },
+    socketOptions: {
+      pingInterval: 10000,
+      pingTimeout: 5000,
+      cookie: false // We handle cookies manually
+    }
+  };
 
-  // 1) Create two clients in lazy mode
-  const pubClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
-  const subClient = new Redis(process.env.REDIS_URL,    { lazyConnect: true });
+  // 1) Create Redis clients with error handling
+  const pubClient = new Redis(process.env.REDIS_URL, config.redisOptions);
+  const subClient = new Redis(process.env.REDIS_URL, config.redisOptions);
 
-  await Promise.all([
-    pubClient.connect(),
-    subClient.connect()
-  ]);
+  pubClient.on('error', err => console.error('Redis pub client error:', err));
+  subClient.on('error', err => console.error('Redis sub client error:', err));
 
-// 2) Set up Socket.IO server
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true
+  try {
+    await Promise.all([
+      pubClient.connect(),
+      subClient.connect()
+    ]);
+  } catch (err) {
+    console.error('Failed to connect to Redis:', err.message);
+    throw err;
   }
+
+  // 2) Set up Socket.IO server with enhanced CORS
+  const io = new Server(server, {
+    ...config.socketOptions,
+    cors: {
+      origin: (origin, callback) => {
+        // Allow requests with no origin in development only
+        if (!origin) {
+          return callback(
+            process.env.NODE_ENV === 'production' 
+              ? new Error('Origin required') 
+              : null, 
+            process.env.NODE_ENV !== 'production'
+          );
+        }
+
+        try {
+          const originUrl = new URL(origin);
+          const isValid = config.allowedOrigins.some(allowedOrigin => {
+            const allowedUrl = new URL(allowedOrigin);
+            return (
+              originUrl.protocol === allowedUrl.protocol &&
+              originUrl.hostname === allowedUrl.hostname &&
+              originUrl.port === allowedUrl.port
+            );
+          });
+
+          callback(isValid ? null : new Error('Not allowed by CORS'), isValid);
+        } catch (err) {
+          callback(new Error('Invalid origin'));
+        }
+      },
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
+  });
+instrument(io, {
+ auth:false, 
+ mode:"development"
 });
-
-
   // 3) Connect Redis adapter to Socket.IO
   io.adapter(createAdapter(pubClient, subClient));
 
-// 4) Auth middleware: parse cookies + verify JWT
-io.use((socket, next) => {
-  try {
-    const rawCookie = socket.handshake.headers.cookie || '';
-    const { token } = cookie.parse(rawCookie || '');
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = payload;
-    next();
-  } catch (err) {
-    console.error('❌ JWT Auth failed:', err.message);
-    next(new Error('Authentication error see '));
-  }
-});
-
-
-  // 5) Connection handler
-  io.on('connection', async socket => {
-    const uid = socket.user.userId;
-    const redisKey = `user:sockets:${uid}`;
-
+  // 4) Enhanced auth middleware
+  io.use((socket, next) => {
     try {
-      // ✅ Remove stale sockets (optional)
-      const oldSockets = await pubClient.smembers(redisKey);
-      const staleSockets = oldSockets.filter(id => id !== socket.id);
-      if (staleSockets.length > 0) {
-        await pubClient.srem(redisKey, ...staleSockets);
+      let token = null;
+
+      // Check auth token first (higher priority)
+      if (socket.handshake.auth?.token) {
+        token = socket.handshake.auth.token;
+      } 
+      // Then check cookies
+      else if (socket.handshake.headers?.cookie) {
+        const cookies = cookie.parse(socket.handshake.headers.cookie);
+        token = cookies.token;
       }
 
-      // ✅ Save new socket
-      await pubClient.sadd(redisKey, socket.id);
+      if (!token) {
+        throw new Error('No authentication token provided');
+      }
 
-      // ✅ Join user-specific room
-      socket.join(`user:${uid}`);
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // Validate payload structure
+      if (!payload.userId || typeof payload.userId !== 'string') {
+        throw new Error('Invalid token payload');
+      }
 
-      console.log(`✅ [WS] ${uid} connected via socket ${socket.id}`);
+      socket.user = {
+        userId: payload.userId,
+        // Add other expected payload properties here
+        ...payload
+      };
 
-      // ✅ Register per-socket event handlers
-      registerSocketHandlers(io, socket , pubClient);
-
-      // ✅ Handle disconnection
-      socket.on('disconnect', async () => {
-        await pubClient.srem(redisKey, socket.id);
-        const remaining = await pubClient.scard(redisKey);
-        if (remaining === 0) {
-          console.log(`❌ [WS] ${uid} fully disconnected`);
-        } else {
-          console.log(`↔️ [WS] ${uid} still has ${remaining} socket(s)`);
-        }
-      });
-
-    } catch (e) {
-      console.error(`❌ Error handling connection for ${uid}:`, e.message);
+      next();
+    } catch (err) {
+      console.error(`Authentication failed: ${err.message}`);
+      next(new Error('Authentication failed'));
     }
   });
 
-  
-  console.log('✅ Socket.IO + Redis adapter ready');
+  // 5) Enhanced connection handler
+  io.on('connection', async (socket) => {
+    const { userId } = socket.user;
+    const redisKey = `user:sockets:${userId}`;
+
+    try {
+      // Remove stale sockets
+      const oldSockets = await pubClient.smembers(redisKey);
+      if (oldSockets.length > 0) {
+        await pubClient.srem(redisKey, ...oldSockets.filter(id => id !== socket.id));
+      }
+
+      // Add new socket
+      await pubClient.sadd(redisKey, socket.id);
+
+      // Join user room
+      socket.join(`user:${userId}`);
+
+      console.log(`✅ [WS] User ${userId} connected via socket ${socket.id}`);
+
+      // Register handlers
+       registerSocketHandlers(io, socket, pubClient);
+
+      // Handle disconnection
+      socket.on('disconnect', async (reason) => {
+        try {
+          await pubClient.srem(redisKey, socket.id);
+          const remaining = await pubClient.scard(redisKey);
+          
+          console.log(
+            remaining === 0
+              ? `❌ [WS] User ${userId} fully disconnected (reason: ${reason})`
+              : `↔️ [WS] User ${userId} still has ${remaining} socket(s) active`
+          );
+        } catch (err) {
+          console.error(`Error handling disconnect for user ${userId}:`, err.message);
+        }
+      });
+
+      // Handle errors
+      socket.on('error', (err) => {
+        console.error(`Socket error for user ${userId}:`, err.message);
+      });
+
+    } catch (err) {
+      console.error(`Connection setup failed for user ${userId}:`, err.message);
+      socket.disconnect(true);
+    }
+  });
+
+  // Cleanup on process exit
+  process.on('SIGTERM', async () => {
+    try {
+      await Promise.all([
+        pubClient.quit(),
+        subClient.quit()
+      ]);
+      io.close();
+      console.log('Socket.IO and Redis clients gracefully shutdown');
+    } catch (err) {
+      console.error('Error during shutdown:', err.message);
+    }
+  });
+
+
+  console.log('✅ Socket.IO initialized with Redis adapter');
 };
