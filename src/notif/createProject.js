@@ -29,7 +29,7 @@ const notification = await Notification.create({
     title: 'Created Project',
     message: `${projectName}`,
     icon: '📁',
-    link: `/project/add`,
+    link: `/project/add/${projectId}`,
     data: { projectId, assignedBy: devOpsId },
     priority: 'normal'
   });

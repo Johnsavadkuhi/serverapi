@@ -23,13 +23,12 @@ const getManagerProjects = async (req, res) => {
 
 
 const createProject = async (req, res) => {
+  const { projectName, projectVersion, letterNumber, numberTest, projectType, platform } = req.body;
 
-  const { projectName, projectVersion, letterNumber, numberTest, projectType, platform } = req.body
-
-  // Convert the projectType object to an array of selected types
+  // Convert the projectType object to an array of selected types with capitalized first letters
   const projectTypeArray = Object.entries(projectType)
     .filter(([key, value]) => value)
-    .map(([key]) => key);
+    .map(([key]) => key.charAt(0).toUpperCase() + key.slice(1).toLowerCase());
 
   // Convert the platform object to an array of selected platforms
   const platformArray = Object.entries(platform)
@@ -47,9 +46,8 @@ const createProject = async (req, res) => {
 
   await createdProject.save();
 
-  res.status(201).json({ success: true , project:createdProject})
-
-}
+  res.status(201).json({ success: true, project: createdProject });
+};
 
 const getBugs = async (req, res) => {
     const { userId, projectId } = req.query;

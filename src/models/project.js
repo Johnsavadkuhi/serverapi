@@ -61,8 +61,11 @@ const projectSchema = new Schema({
     }],
 
     description: [String],
-    expireDay: { type: Date, required: false  },
-
+    expireDay: { type: Date },
+    expireDayQuality:{type:Date  } , 
+    verifiedByAdmin: {
+        type: Date
+    },
     created_date: {
         type: Date,
         default: () => new Date().toISOString()
