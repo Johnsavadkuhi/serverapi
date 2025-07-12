@@ -1,3 +1,4 @@
+const mongoose= require("mongoose")
 const project = require("../models/project")
 const ProjectUser = require("../models/ProjectUser")
 
@@ -51,24 +52,26 @@ const createProject = async (req, res) => {
 }
 
 const getBugs = async (req, res) => {
-    const userId = req.query.userId; // No need for `await` on query params
-    const projectId = req.query.projectId;
+    const { userId, projectId } = req.query;
 
-    console.log("project id : " , projectId )
+
     try {
-        // Convert projectId string to ObjectId
-        const projectObjectId = new mongoose.Types.ObjectId(projectId);
-
-        const response = await ProjectUser.findOne({ project: projectObjectId });
-        console.log("response:", response);
+        // 1. Validate the ID format
+        if (!mongoose.Types.ObjectId.isValid(projectId)) {
+            return res.status(400).json({ message: "Invalid project ID" });
+        }
+const objectId = mongoose.Types.ObjectId.createFromHexString(projectId);
         
+        // 3. Query using the ObjectId
+        const response = await ProjectUser.find({_id:objectId});
         if (!response) {
             return res.status(404).json({ message: "Project not found" });
         }
 
         res.status(200).json(response);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Error:", err);
+        res.status(500).json({ error: "Server error" });
     }
 };
 

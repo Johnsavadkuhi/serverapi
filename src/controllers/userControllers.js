@@ -35,7 +35,7 @@ const assignUser = async (req, res) => {
     }
 
         const bugScopes = WebOwasp.map(convertToBugSchemaFormat);
-
+console.log("bugScopes ************************* : " , bugScopes )
     // Create or update the project-user relation
     const projectUser = await ProjectUser.findOneAndUpdate(
       { project: projectId, pentester: pentesterId },
@@ -120,6 +120,8 @@ const getBugScopes  = async(req , res)=>{
   const {projectId , userId , managerId } = req.query 
   console.log("proejct id : "  , projectId , userId , managerId)
    try {
+
+    //importand _id instead of project 
     const projectUser = await ProjectUser.findOne({
       project: projectId,  
       pentester: userId  
