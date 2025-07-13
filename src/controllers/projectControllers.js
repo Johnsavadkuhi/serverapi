@@ -23,7 +23,7 @@ const getManagerProjects = async (req, res) => {
 
 
 const createProject = async (req, res) => {
-  const { projectName, projectVersion, letterNumber, numberTest, projectType, platform } = req.body;
+  const {userId,  projectName, projectVersion, letterNumber, numberTest, projectType, platform } = req.body;
 
   // Convert the projectType object to an array of selected types with capitalized first letters
   const projectTypeArray = Object.entries(projectType)
@@ -36,6 +36,7 @@ const createProject = async (req, res) => {
     .map(([key]) => key);
 
   const createdProject = new project({
+    devops:userId, 
     projectName,
     version: projectVersion,
     letterNumber,

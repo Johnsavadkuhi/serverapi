@@ -11,9 +11,12 @@ module.exports = async function initializeSocket(server) {
   const config = {
     allowedOrigins: process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:5173',
-      'http://localhost:3000', 
+      'http://localhost:3001', 
       'http://localhost:4000',
-      'https://admin.socket.io'
+      'https://admin.socket.io', 
+      'http://10.10.10.120:5173', 
+      'http://10.10.10.120:3001', 
+      'http://10.10.10.120:4000'
     ],
     redisOptions: {
       lazyConnect: true,

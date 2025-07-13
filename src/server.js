@@ -9,6 +9,7 @@ const projectRoutes = require("./routes/projectRoutes")
 const userRoutes = require("./routes/userRoutes")
 const notificationRoutes = require("./routes/notificationRoutes")
 const owaspRoutes = require("./routes/owaspRoutes")
+const devopsRoutes = require("./routes/devopsRoutes")
 const initializeSocket = require('./socket/');
 const connectDB = require('./config/dbConfig');
 const cors = require("cors");
@@ -17,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001'] ,
   credentials: true,
 }));
 
@@ -33,6 +34,7 @@ app.use("/api/projects" , verifyToken , projectRoutes )
 app.use("/api/users" , verifyToken , userRoutes)
 app.use("/api/notification"  ,notificationRoutes )
 app.use('/api/owasp' , owaspRoutes)
+app.use("/api/devops" , devopsRoutes)
 // Create HTTP server
 const server = http.createServer(app);
 

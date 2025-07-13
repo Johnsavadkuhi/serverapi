@@ -46,6 +46,10 @@ const projectSchema = new Schema({
         type: mongoose.Types.ObjectId,
         ref: "User"
     },
+    devops: {
+        type: mongoose.Types.ObjectId,
+        ref: "User"
+    },
     projectType: {
         type: [String],
         required: true
