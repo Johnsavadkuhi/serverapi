@@ -81,9 +81,54 @@ const updateDevopsProject = async (req, res) => {
   }
 };
 
+
+const deleteDevopsProject = async (req, res) => {
+  try {
+    const { projectId, userId } = req.query;
+
+    // Validate inputs
+    if (!projectId || !userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Both projectId and userId are required" 
+      });
+    }
+
+    // Check if project exists and belongs to this devops user
+    const proj = await project.findOneAndDelete({ 
+      _id: projectId, 
+      devops: userId 
+    });
+
+    if (!proj)  {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found or you don't have permission to delete it"
+      });
+    }
+
+    // Optional: Clean up related data
+   
+    res.status(200).json({
+      success: true,
+      message: "Project deleted successfully",
+    
+    });
+
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete project",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
 getDevopsProjects , 
 getDevopsProject, 
-updateDevopsProject
+updateDevopsProject, 
+deleteDevopsProject
 
 }
