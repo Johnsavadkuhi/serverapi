@@ -108,7 +108,7 @@ const deleteDevopsProject = async (req, res) => {
     }
 
     // Optional: Clean up related data
-   
+  
     res.status(200).json({
       success: true,
       message: "Project deleted successfully",
