@@ -138,82 +138,83 @@ const getDevopsProjectPentesters = async(req , res)=>{
 
 
 }
-
 const registerDevOpsInfo = async (req, res) => {
   try {
-    // 1. Validate request body exists
-    if (!req.body) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Request body is required" 
+    if (!req.body || !req.body.data) {
+      return res.status(400).json({
+        success: false,
+        error: "Request body is required"
       });
     }
 
-    // 2. Destructure required fields
     const {
       projectId,
       pentesterId,
-      environmentType,
-      platformType,
+      platformType,            // 'web' | 'mobile' | 'desktop'
       platformData,
       endpoints,
-      submittedBy
+      submittedBy,
+      isShared = false,
+      technologyStack
     } = req.body.data;
 
-    // 3. Validate required fields
-    if (!projectId || !pentesterId || !platformType) {
+    // ✅ validate required shared fields
+    if (!projectId || !platformType || !submittedBy || !endpoints) {
       return res.status(400).json({
         success: false,
-        error: "projectId, pentesterId, and platformType are required fields"
+        error: "projectId, platformType, endpoints and submittedBy are required"
       });
     }
 
-    // 4. Prepare the data for saving
+    // ✅ if not shared, pentesterId is required
+    if (!isShared && !pentesterId) {
+      return res.status(400).json({
+        success: false,
+        error: "pentesterId is required for non-shared DevOps entries"
+      });
+    }
+
+    // ✅ extract environmentType only for web platform
+    const envType = platformData?.web?.environmentType;
+    if (!envType) {
+      return res.status(400).json({
+        success: false,
+        error: "platformData.web.environmentType is required"
+      });
+    }
+
+    // ✅ Build DevOps document to save
     const devOpsData = {
       project: projectId,
-      pentester: pentesterId,
+      pentester: isShared ? undefined : pentesterId,
       platform: platformType,
       platformData: {
         [platformType]: {
-          ...platformData[platformType],
-          ...(platformType === 'web' && { environmentType })
+          ...platformData?.[platformType]
         }
       },
-      endpoints
+      endpoints,
+      submittedBy,
+      isShared: !!isShared
     };
 
-    // 5. Create and save the new DevOpsInfo document
+    // ✅ Optionally attach technologyStack if present
+    if (technologyStack) {
+      devOpsData.technologyStack = technologyStack;
+    }
+
     const newDevOpsInfo = new DevOpsInfo(devOpsData);
     const savedDevOpsInfo = await newDevOpsInfo.save();
 
-    // 6. Return success response
     return res.status(201).json({
       success: true,
-      message: "DevOps information saved successfully",
+      message: "DevOpsInfo saved successfully",
       data: savedDevOpsInfo
     });
 
   } catch (error) {
-    console.error("Error saving DevOps info:", error);
-    
-    // Handle specific MongoDB errors
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: "Validation failed",
-        details: error.message
-      });
-    }
+    console.error("Error saving DevOpsInfo:", error);
 
-    if (error.name === 'CastError') {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid ID format",
-        details: error.message
-      });
-    }
-
-    // Generic server error
     return res.status(500).json({
       success: false,
       error: "Internal server error",
@@ -221,6 +222,7 @@ const registerDevOpsInfo = async (req, res) => {
     });
   }
 };
+
 
 
 
