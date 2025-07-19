@@ -1,5 +1,7 @@
 const mongoose= require("mongoose")
 const project = require("../models/project")
+const ProjectUser = require("../models/ProjectUser") 
+const DevOpsInfo = require("../models/DevOpsInfo")
 
 const getDevopsProjects = async (req , res  )=>{
 
@@ -125,10 +127,110 @@ const deleteDevopsProject = async (req, res) => {
   }
 };
 
+const getDevopsProjectPentesters = async(req , res)=>{
+
+  const {projectId } = req.query
+  console.log("userid for devops project : " , projectId   )
+  const projectPentesters = await ProjectUser.find({project:projectId}).populate("pentester", "_id firstName lastName profileImageUrl")
+  console.log("devOps project s: " , projectPentesters.length)
+  res.status(200).json({  projectPentesters })
+
+
+
+}
+
+const registerDevOpsInfo = async (req, res) => {
+  try {
+    // 1. Validate request body exists
+    if (!req.body) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Request body is required" 
+      });
+    }
+
+    // 2. Destructure required fields
+    const {
+      projectId,
+      pentesterId,
+      environmentType,
+      platformType,
+      platformData,
+      endpoints,
+      submittedBy
+    } = req.body.data;
+
+    // 3. Validate required fields
+    if (!projectId || !pentesterId || !platformType) {
+      return res.status(400).json({
+        success: false,
+        error: "projectId, pentesterId, and platformType are required fields"
+      });
+    }
+
+    // 4. Prepare the data for saving
+    const devOpsData = {
+      project: projectId,
+      pentester: pentesterId,
+      platform: platformType,
+      platformData: {
+        [platformType]: {
+          ...platformData[platformType],
+          ...(platformType === 'web' && { environmentType })
+        }
+      },
+      endpoints
+    };
+
+    // 5. Create and save the new DevOpsInfo document
+    const newDevOpsInfo = new DevOpsInfo(devOpsData);
+    const savedDevOpsInfo = await newDevOpsInfo.save();
+
+    // 6. Return success response
+    return res.status(201).json({
+      success: true,
+      message: "DevOps information saved successfully",
+      data: savedDevOpsInfo
+    });
+
+  } catch (error) {
+    console.error("Error saving DevOps info:", error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: "Validation failed",
+        details: error.message
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid ID format",
+        details: error.message
+      });
+    }
+
+    // Generic server error
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      details: error.message
+    });
+  }
+};
+
+
+
+
 module.exports = {
 getDevopsProjects , 
 getDevopsProject, 
 updateDevopsProject, 
-deleteDevopsProject
+deleteDevopsProject, 
+getDevopsProjectPentesters ,
+registerDevOpsInfo
 
 }
