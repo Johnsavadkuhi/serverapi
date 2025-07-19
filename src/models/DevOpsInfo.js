@@ -123,11 +123,15 @@ const TechnologyStackSchema = new Schema({
 const DevOpsInfoSchema = new Schema({
    // Link to project and pentester
   project: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
-  pentester: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  pentester: { type: Schema.Types.ObjectId, ref: 'User', required: false },
 
   platform: { type: String, enum: ['web', 'mobile', 'desktop'] },
   platformData: PlatformDataSchema,
   endpoints: [EndpointSchema], 
+  isShared: {
+  type: Boolean,
+  default: false
+  }, 
 technologyStack: TechnologyStackSchema
 
 });
