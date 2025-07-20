@@ -139,6 +139,10 @@ const getDevopsProjectPentesters = async(req , res)=>{
 
 }
 const registerDevOpsInfo = async (req, res) => {
+  
+  await DevOpsInfo.syncIndexes();
+
+  
   try {
     if (!req.body || !req.body.data) {
       return res.status(400).json({

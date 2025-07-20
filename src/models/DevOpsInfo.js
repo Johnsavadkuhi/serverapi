@@ -11,7 +11,8 @@ const CredentialSchema = new Schema({
 const EndpointSchema = new Schema({
   url: { type: String, required: true },
   credentials: [CredentialSchema],
-
+  isDns: { type: Boolean, default: false }, 
+  ip:String ,
   // 🔽 تکنولوژی مربوط به همین endpoint
   technologyStack: {
     frontendLanguage: String,
@@ -135,6 +136,7 @@ const DevOpsInfoSchema = new Schema({
 technologyStack: TechnologyStackSchema
 
 });
+DevOpsInfoSchema.index({ project: 1, pentester: 1  }, { unique: true });
 
 
 
