@@ -1,9 +1,9 @@
 // const project = require("../models/project");
-'use client'; 
+
 const { assignProjectToUser } = require("../notif/assignProjectToUser");
 const { createProject } = require("../notif/createProject");
 const { unassignProjectFromUser } = require("../notif/unassignProjectFromUser");
-
+const {addReport} = require("../notif/addReport")
 
 function registerSocketHandlers(io, socket , pubClient) {
   
@@ -16,11 +16,16 @@ function registerSocketHandlers(io, socket , pubClient) {
     unassignProjectFromUser(projectId , pentesterId  , io , pubClient )
   })
 
+  socket.on("addReport" , async ({projectId , pentester  , projectManager  })=>{
+    console.log("****************** add report *************** event !!! ")
+   await  addReport(projectId ,pentester ,projectManager,io , pubClient)
+  })
+
+
   socket.on("createProject" , async ({projectId , devOpsId , projectName })=>{
     console.log("****************** create project *************** event !!! ")
    await  createProject(projectId ,devOpsId ,projectName,io , pubClient)
   })
-
 
     // Every event here is already authenticated
     socket.on('message', (data) => {
