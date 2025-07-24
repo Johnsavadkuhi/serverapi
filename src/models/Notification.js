@@ -20,7 +20,7 @@ const NotificationSchema = new Schema({
   },
   category: {
     type: String,
-    enum: ['project', 'chat', 'system', 'news'],
+    enum: ['project', 'chat', 'system', 'news' , 'report'],
     default: 'project'
   },
   title: {
