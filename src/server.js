@@ -18,12 +18,28 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001'] ,
+  origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001' , 'http://localhost:4000'] ,
   credentials: true,
 }));
+// built-in middleware to handle urlencoded form data
+app.use(express.urlencoded({ extended: false }));
 
 app.use(express.json());
 app.use(cookieParser());
+app.use('/upload', express.static(path.join(__dirname,'/../', process.env.UPLOAD_DIR)));
+
+// Error handler for missing files
+app.use('/upload', (err, req, res, next) => {
+  if (err) {
+    console.error('Static file error:', err);
+    return res.status(404).send('File not found');
+  }
+  console.log(req)
+  next();
+}); 
+console.log("process.env.UPLOAD_DIR : "  ,path.join(__dirname,'/../', process.env.UPLOAD_DIR))
+
+
 
 connectDB() 
  
