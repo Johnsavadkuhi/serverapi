@@ -1,10 +1,16 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+
 const PocSchema = new Schema({
-    path: String,
     originalname: String,
-    type: String
+    encoding:String , 
+    type: String , 
+    destination:String , 
+    filename:String , 
+    path: String,
+    size:String
+
 }, { _id: false });
 
 const FoundedBugSchema = new Schema({
@@ -73,6 +79,6 @@ FoundedBugSchema.index({ project: 1, pentester: 1, id: 1, _id: 1, state: 1 });
 
 
 
-export default mongoose.models.FoundedBug || mongoose.model('FoundedBug', FoundedBugSchema)
+
 const FoundedBug = mongoose.model('FoundedBug', FoundedBugSchema);
 module.exports = FoundedBug 
