@@ -2,8 +2,10 @@ const Notification = require('../models/Notification');
 
 
 
-async function addReport(projectId, pentester  , projectManager  , io, pubClient) {
+async function addReport(bugId  , io, pubClient) {
   
+  const {_id ,label , project , pentester , projectManager  } = bugId 
+
 
 const notification = await Notification.create({
     userId: projectManager ,
@@ -11,10 +13,10 @@ const notification = await Notification.create({
     type: 'alert',
     category: 'report',
     title: 'New Report',
-    message: "New Report Is Added by User",
+    message: `${label}`,
     icon: '📁',
-    link: `/project/add/${projectId}`,
-    data: { projectId, assignedBy: pentester },
+    link: `/project/report/${_id}`,
+    data: { project , assignedBy: pentester },
     priority: 'normal'
   });
 
@@ -29,8 +31,9 @@ const notification = await Notification.create({
     sockets.forEach(sid => {
       console.log("sid############# : " , sid )
       io.to(sid).emit('notification:new', notification);
-    //   io.to(sid).emit("createProjectForAdmin" , projectName)
-    });
+    }); 
+  // io.to(`user:${sid}`).emit('notification:new', message);
+
   }
 }
 

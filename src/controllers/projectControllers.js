@@ -269,7 +269,7 @@ const creatReport = async (req, res) => {
     });
 
     await newBug.save();
-    res.status(201).json({ message: 'Report created successfully', bugId: newBug._id });
+    res.status(201).json({ message: 'Report created successfully', bugId: newBug });
   } catch (error) {
     console.error('Error creating report:', error);
     res.status(500).json({ error: 'Failed to create report' });
@@ -398,6 +398,126 @@ console.log("req.query : " , req.query )
 }
 
 
+const fetchReportById = async (req, res) => {
+  try {
+    const { reportId } = req.query;
+    console.log("reportId: ", req.query, reportId);
+    
+    // Add await to actually get the result of the query
+    const result = await FoundedBug.findOne({ _id: reportId });
+    console.log("result: ", result);
+    
+    // Check if the report was found
+    if (!result) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+    
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching report: ", error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const reportVerify = async (req, res) => {
+    const { state, id } = req.body;
+
+    console.log("state : " , state , id )
+    // Validate that the required fields are present
+    if (!req.body.id) {
+        return res.status(400).json({ message: "Id is required." });
+    }
+
+    if (!req.body.state && !req.body.score) {
+        return res.status(400).json({ message: "Either state or score must be provided." });
+    }
+
+    try {
+        // Find the document by ID
+        const report = await FoundedBug.findById(id).populate('pentester');
+        if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        const previousStatus = report?.state;
+        const cvssScore = parseFloat(report?.CVSS);
+
+        if (previousStatus === 'Verify' && state === 'Not Applicable') {
+            report.pentester.score -= cvssScore;
+            report.pentester.score -= 5;
+            report.grade = -5;
+        } else if (previousStatus === 'Verify' && state === 'Duplicate') {
+            report.grade = cvssScore;
+        } else if (previousStatus === 'Verify' && state === 'Verify') {
+            report.grade = cvssScore; // No score change, just retain the CVSS score
+        } else if (previousStatus === 'Not Applicable' && state === 'Verify') {
+            report.pentester.score += 5;
+            report.pentester.score += cvssScore;
+            report.grade = cvssScore;
+        } else if (previousStatus === 'Not Applicable' && state === 'Duplicate') {
+            report.pentester.score += 5;
+            report.pentester.score += cvssScore;
+            report.grade = cvssScore;
+        } else if (previousStatus === 'Not Applicable' && state === 'Not Applicable') {
+            // No score change for this transition
+        } else if (previousStatus === 'New' && state === 'Verify') {
+            report.grade = parseFloat(req.body.score);
+            report.pentester.score += parseFloat(req.body.score);
+        } else if (previousStatus === 'New' && state === 'Not Applicable') {
+            report.pentester.score -= 5;
+            report.grade = -5;
+        } else if (previousStatus === 'New' && state === 'Duplicate') {
+            report.pentester.score += cvssScore;
+            report.grade = cvssScore;
+            report.pentester.score += parseFloat(req.body.score);
+        } else if (previousStatus === 'Duplicate' && state === 'Verify') {
+            report.grade = cvssScore;
+        } else if (previousStatus === 'Duplicate' && state === 'Not Applicable') {
+            report.pentester.score -= cvssScore;
+            report.pentester.score -= 5;
+            report.grade = -5;
+        } else if (previousStatus === 'Duplicate' && state === 'Duplicate') {
+
+
+        } else if (previousStatus === 'Verify' && state === 'New') {
+            // No score change for this t
+
+            console.log("previousStatus : ", previousStatus, "\n state : ", state)
+            console.log("report.grade : ", report.grade)
+            console.log("cvssScore : ", cvssScore)
+            report.grade = 0
+            report.pentester.score -= cvssScore;
+
+
+        } else if (previousStatus === 'Duplicate' && state === 'New') {
+            // No score change for this transition
+            console.log("report.pentester.score : ", report.pentester.score, " \r cvssScore : ", cvssScore)
+            report.grade = 0
+            report.pentester.score -= cvssScore;
+
+        } else if (previousStatus === 'Not Applicable' && state === 'New') {
+            // No score change for this transition
+            report.grade = 0
+            report.pentester.score += 5;
+
+        } else if (previousStatus === 'New' && state === 'New') {
+            // No score change for this transition
+
+        }
+
+        report.state = state;
+        report.managerVerifyDate = req.body.managerVerifyDate;
+
+        // Update the document
+        await report.save();
+        await report.pentester.save();
+
+        // Return the updated document and a 200 status code on success
+        return res.status(200).json({ message: "Report updated successfully." });
+    } catch (error) {
+        console.error("Error updating report:", error);
+        // Return a 500 status code and error message if something goes wrong
+        return res.status(500).json({ message: "An error occurred while updating the report.", error: error.message });
+    }
+};
 
 
 module.exports = {
@@ -411,7 +531,9 @@ module.exports = {
   fetchReport, 
   updateReport , 
   fetchAllReports , 
-  fetchProjectById 
+  fetchProjectById , 
+  fetchReportById, 
+  reportVerify 
   
 }; 
  

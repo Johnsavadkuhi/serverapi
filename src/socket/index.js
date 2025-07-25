@@ -128,7 +128,7 @@ module.exports = async function initializeSocket(server) {
       next(new Error('Authentication failed'));
     }
   });
-
+ 
   // 5) Enhanced connection handler
   io.on('connection', async (socket) => {
     const { userId } = socket.user;

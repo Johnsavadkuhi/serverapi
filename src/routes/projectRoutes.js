@@ -1,6 +1,7 @@
 const express = require('express');
 const { getUserProjects, getManagerProjects, createProject , getBugs , updateBugStatus, updateBulkBugStatus,
-    creatReport,fetchReport , updateReport , fetchAllReports  , fetchProjectById 
+    creatReport,fetchReport , updateReport , fetchAllReports  , fetchProjectById , fetchReportById, 
+    reportVerify
  } = require('../controllers/projectControllers');
 
 
@@ -72,7 +73,8 @@ router.route("/bug/creat/report").post(pocUpload.array('files', 100) , creatRepo
 router.get("/user/report" , fetchReport)
 router.get("/reports/all/users" , fetchAllReports)
 router.get("/project" , fetchProjectById)
-
+router.get("/user/report/byid" , fetchReportById)
+router.post("/user/report/verify" , reportVerify)
 
 module.exports = router; 
  

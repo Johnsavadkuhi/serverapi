@@ -16,9 +16,9 @@ function registerSocketHandlers(io, socket , pubClient) {
     unassignProjectFromUser(projectId , pentesterId  , io , pubClient )
   })
 
-  socket.on("addReport" , async ({projectId , pentester  , projectManager  })=>{
+  socket.on("addReport" , async ({bugId })=>{
     console.log("****************** add report *************** event !!! ")
-   await  addReport(projectId ,pentester ,projectManager,io , pubClient)
+   await  addReport(bugId,io , pubClient)
   })
 
 
