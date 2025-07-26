@@ -2,6 +2,8 @@ const mongoose= require("mongoose")
 const project = require("../models/project")
 const ProjectUser = require("../models/ProjectUser")
 const FoundedBug = require("../models/FoundedBug")
+const fs = require('fs');
+const path = require('path');
 
 
 const getUserProjects = async (req, res) => {
@@ -351,7 +353,7 @@ console.log("existingFiles : ", existingFiles )
       modificationInProgramCode: codeModificationSecuring === 'true' || codeModificationSecuring === true
     };
     existingReport.securingByWAF = wafPossibility;
-    existingReport.reference = reference;
+    existingReport.refrence = reference;
     existingReport.cvssVector = cvssVector;
     existingReport.pocs = updatedPocs;
 
@@ -520,6 +522,135 @@ const reportVerify = async (req, res) => {
 };
 
 
+const deleteReportById = async (req, res) => {
+  const { reportId } = req.body;
+
+  if (!reportId) {
+    return res.status(400).json({
+      message: "Missing required reportId in request body",
+      code: 400
+    });
+  }
+
+  try {
+    // Step 1: Fetch the report to get pocs paths
+    const report = await FoundedBug.findById(reportId);
+
+    if (!report) {
+      return res.status(404).json({
+        message: "No report found with the provided ID",
+        code: 404
+      });
+    }
+
+    // Step 2: Delete each file from the file system
+    const deleteFilePromises = (report.pocs || []).map(poc => {
+      const filePath = path.resolve(poc.path); // Ensure absolute path
+      return new Promise((resolve, reject) => {
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            // Log and continue (don't block deletion for missing files)
+            console.warn(`Failed to delete file at ${filePath}: ${err.message}`);
+          }
+          resolve(); // always resolve to continue
+        });
+      });
+    });
+
+    await Promise.all(deleteFilePromises);
+
+    // Step 3: Delete the report document
+    await FoundedBug.deleteOne({ _id: reportId });
+
+    res.status(200).json({
+      message: "Successfully deleted the report and associated files",
+      code: 200
+    });
+
+  } catch (error) {
+    console.error("Error deleting report and files:", error);
+    res.status(500).json({
+      message: "An error occurred while deleting the report",
+      code: 500,
+      error: error.message
+    });
+  }
+};
+
+
+const fetchProjectByUserProjectManager = async(req , res )=>{
+
+  const {project:projectId  , pentester , projectManager } = req.query 
+
+  console.log("projectId : " , projectId , pentester , projectManager)
+
+ const result = await ProjectUser.findOne({project:projectId , pentester , manager:projectManager})
+
+  res.status(200).json(result )
+
+
+
+}
+
+
+
+const updateProjectStatus = async(req , res )=>{
+
+  const {projectId , newStatus  } = req.body 
+
+  const projectUser = await ProjectUser.findOne({ _id: projectId });
+  console.log("projectUser : " , projectUser )
+  if (!projectUser) {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+ if (!projectUser.startDate) {
+            console.log("start date initialed for the first time : ", projectUser.startDate)
+            projectUser.startDate = new Date().toISOString();
+                        console.log("start date initialed for the first time : ", projectUser.startDate)
+
+        }
+  // Add the new state and timestamp to the stateChanges array
+        if (!projectUser.stateChanges) {
+            projectUser.stateChanges = [];
+        }
+
+        const currentTime = new Date()
+        const previousStatus = projectUser.status; // Store the previous status
+
+        // Update the status
+        projectUser.status = newStatus;
+
+        projectUser.stateChanges.push({
+            state: newStatus,
+            timestamp: currentTime,
+        });
+
+
+            // Calculate the total work time only for a valid transition from 'In-Progress' to 'Pending' or 'Finish'
+        if (previousStatus === 'In-Progress' && (newStatus === 'Pending' || newStatus === 'Finish')) {
+            // Find the last 'In-Progress' timestamp
+            const lastInProgress = projectUser.stateChanges
+                .filter(change => change.state === 'In-Progress')
+                .slice(-1)[0];
+
+            if (lastInProgress) {
+                const timeWorked = currentTime - new Date(lastInProgress.timestamp);
+                projectUser.totalWorkTime = (projectUser.totalWorkTime || 0) + timeWorked;
+            }
+        }
+
+        // Save the updated document
+        await projectUser.save();
+
+        res.json({ status: projectUser.status });
+
+
+}
+
+
+
+
+
 module.exports = {
   getUserProjects,
   getManagerProjects,
@@ -533,7 +664,10 @@ module.exports = {
   fetchAllReports , 
   fetchProjectById , 
   fetchReportById, 
-  reportVerify 
+  reportVerify , 
+  deleteReportById  , 
+  fetchProjectByUserProjectManager , 
+  updateProjectStatus 
   
 }; 
  
