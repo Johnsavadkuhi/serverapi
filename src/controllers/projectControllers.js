@@ -648,7 +648,26 @@ const updateProjectStatus = async(req , res )=>{
 }
 
 
+const fetchUserProjectById= async(req , res)=>{
 
+  const {projectId , userId } = req.query 
+  console.log("project Id , userId : " ,req.query )
+  const result = await ProjectUser.find({project:projectId ,  pentester:userId })
+  console.log("result : " , result  )
+  res.status(200).json(result)
+}; 
+
+const fetchAllUserReport = async(req , res)=>{
+
+  const {projectId , userId } = req.query 
+  
+  const result = await FoundedBug.find({project:projectId , pentester:userId })
+
+  // console.log("result in 666: " , result )
+  res.status(200).json(result)
+
+
+}
 
 
 module.exports = {
@@ -667,7 +686,9 @@ module.exports = {
   reportVerify , 
   deleteReportById  , 
   fetchProjectByUserProjectManager , 
-  updateProjectStatus 
+  updateProjectStatus, 
+  fetchUserProjectById, 
+  fetchAllUserReport
   
 }; 
  
