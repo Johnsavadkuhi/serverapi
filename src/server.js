@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001' , 'http://localhost:4000'] ,
+  origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001' , 'http://localhost:4000' , 'http://10.10.10.120:4000'] ,
   credentials: true,
 }));
 // built-in middleware to handle urlencoded form data
