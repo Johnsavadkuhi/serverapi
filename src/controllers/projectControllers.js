@@ -704,6 +704,20 @@ const fetchAllUserReport = async(req , res)=>{
 
 }
 
+const getAllBugsForReport = async(req , res )=>{
+
+  const {projectId } = req.query 
+
+  const allReports = FoundedBug.find({project:projectId})
+
+  console.log("all reports : " , allReports )
+
+  res.status(200).json(allReports)
+
+
+}
+
+
 
 module.exports = {
   getUserProjects,
@@ -723,7 +737,8 @@ module.exports = {
   fetchProjectByUserProjectManager , 
   updateProjectStatus, 
   fetchUserProjectById, 
-  fetchAllUserReport
+  fetchAllUserReport , 
+  getAllBugsForReport
   
 }; 
  
