@@ -4,6 +4,8 @@ const ProjectUser = require("../models/ProjectUser")
 const FoundedBug = require("../models/FoundedBug")
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
+const unlinkAsync = util.promisify(fs.unlink);
 
 
 const getUserProjects = async (req, res) => {
@@ -300,7 +302,7 @@ const updateReport = async (req, res) => {
       label,
       wstg,
       cve,
-      path,
+      path:reportPath,
       impact,
       exploit,
       solution,
@@ -315,6 +317,7 @@ const updateReport = async (req, res) => {
       existingFiles,  // Array of existing file IDs to keep
       _id  // ID of the report to update
     } = req.body;
+    
 console.log("existingFiles : ", existingFiles )
     // Find existing report
     const existingReport = await FoundedBug.findById(_id);
@@ -331,6 +334,28 @@ console.log("existingFiles : ", existingFiles )
       existingFiles?.includes(poc.filename)
     );
     
+    const deletedPocs = existingReport.pocs.filter(poc =>
+      !existingFiles?.includes(poc.filename)
+    );
+
+    // Attempt to delete all removed files
+    for (const file of deletedPocs) {
+      try {
+        const filePath = path.resolve(file.path); // Make path absolute
+        console.log("Deleting file at:", filePath);
+        await unlinkAsync(filePath);
+        console.log(`Deleted file: ${file.filename}`);
+      } catch (err) {
+        // Abort update if any file fails to delete
+        console.error(`Failed to delete file ${file.filename}:`, err);
+        return res.status(500).json({
+          error: `Failed to delete file: ${file.filename}`,
+          code: 'FILE_DELETE_FAILED'
+        });
+      }
+    }
+
+
     // 3. Combine kept files with new files
     const updatedPocs = [...keptExistingFiles, ...newPocs];
 
@@ -342,7 +367,7 @@ console.log("existingFiles : ", existingFiles )
     existingReport.severity = cvssSeverity;
     existingReport.CVE = cve;
     existingReport.impact = impact;
-    existingReport.path = path;
+    existingReport.path = reportPath;
     existingReport.solutions = solution;
     existingReport.exploits = exploit;
     existingReport.tools = Array.isArray(tools) 
@@ -528,51 +553,61 @@ const deleteReportById = async (req, res) => {
   if (!reportId) {
     return res.status(400).json({
       message: "Missing required reportId in request body",
-      code: 400
+      code: 400,
     });
   }
 
   try {
-    // Step 1: Fetch the report to get pocs paths
+    // Step 1: Fetch the report
     const report = await FoundedBug.findById(reportId);
 
     if (!report) {
       return res.status(404).json({
         message: "No report found with the provided ID",
-        code: 404
+        code: 404,
       });
     }
 
-    // Step 2: Delete each file from the file system
-    const deleteFilePromises = (report.pocs || []).map(poc => {
-      const filePath = path.resolve(poc.path); // Ensure absolute path
-      return new Promise((resolve, reject) => {
-        fs.unlink(filePath, (err) => {
-          if (err) {
-            // Log and continue (don't block deletion for missing files)
-            console.warn(`Failed to delete file at ${filePath}: ${err.message}`);
-          }
-          resolve(); // always resolve to continue
-        });
-      });
-    });
+    // Step 2: Try deleting all POC files
+    const pocs = report.pocs || [];
 
-    await Promise.all(deleteFilePromises);
+    for (const poc of pocs) {
+      const filePath = path.resolve(poc.path);
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (fileErr) {
+        console.error(`Failed to delete file at ${filePath}: ${fileErr.message}`);
+
+        // Stop and respond with error before deleting DB record
+        return res.status(500).json({
+          message: `Failed to delete file: ${poc.name || filePath}`,
+          code: 500,
+          error: fileErr.message,
+        });
+      }
+    }
 
     // Step 3: Delete the report document
-    await FoundedBug.deleteOne({ _id: reportId });
+    const deleted = await FoundedBug.deleteOne({ _id: reportId });
 
-    res.status(200).json({
+    if (deleted.deletedCount === 0) {
+      return res.status(500).json({
+        message: "Report deletion failed at database level",
+        code: 500,
+      });
+    }
+
+    return res.status(200).json({
       message: "Successfully deleted the report and associated files",
-      code: 200
+      code: 200,
     });
 
   } catch (error) {
-    console.error("Error deleting report and files:", error);
-    res.status(500).json({
-      message: "An error occurred while deleting the report",
+    console.error("Unexpected error while deleting report:", error);
+    return res.status(500).json({
+      message: "An unexpected error occurred while deleting the report",
       code: 500,
-      error: error.message
+      error: error.message,
     });
   }
 };
