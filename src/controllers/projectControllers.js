@@ -5,6 +5,7 @@ const FoundedBug = require("../models/FoundedBug")
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+const Page = require("../models/Page");
 const unlinkAsync = util.promisify(fs.unlink);
 
 
@@ -629,58 +630,47 @@ const fetchProjectByUserProjectManager = async(req , res )=>{
 
 
 
-const updateProjectStatus = async(req , res )=>{
+// Backend API endpoint
+const updateProjectStatus = async (req, res) => {
+  try {
+    const { projectId, newStatus, timeWorked = 0 } = req.body;
 
-  const {projectId , newStatus  } = req.body 
+    const project = await ProjectUser.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
 
-  const projectUser = await ProjectUser.findOne({ _id: projectId });
-  console.log("projectUser : " , projectUser )
-  if (!projectUser) {
-            return res.status(404).json({ message: 'Project not found' });
-        }
- if (!projectUser.startDate) {
-            console.log("start date initialed for the first time : ", projectUser.startDate)
-            projectUser.startDate = new Date().toISOString();
-                        console.log("start date initialed for the first time : ", projectUser.startDate)
+    // Update total work time
+    project.totalWorkTime = (project.totalWorkTime || 0) + timeWorked;
+    project.status = newStatus;
+    
+    // Record state change
+    project.stateChanges.push({
+      state: newStatus,
+      timestamp: new Date()
+    });
 
-        }
-  // Add the new state and timestamp to the stateChanges array
-        if (!projectUser.stateChanges) {
-            projectUser.stateChanges = [];
-        }
+    // Update timestamps
+    const now = new Date();
+    if (newStatus === 'In-Progress' && !project.startDate) {
+      project.startDate = now;
+    }
+    if (newStatus === 'Finish' && !project.finishDate) {
+      project.finishDate = now;
+    }
 
-        const currentTime = new Date()
-        const previousStatus = projectUser.status; // Store the previous status
+    await project.save();
 
-        // Update the status
-        projectUser.status = newStatus;
+    res.json({
+      status: project.status,
+      totalWorkTime: project.totalWorkTime,
+      stateChanges: project.stateChanges
+    });
 
-        projectUser.stateChanges.push({
-            state: newStatus,
-            timestamp: currentTime,
-        });
-
-
-            // Calculate the total work time only for a valid transition from 'In-Progress' to 'Pending' or 'Finish'
-        if (previousStatus === 'In-Progress' && (newStatus === 'Pending' || newStatus === 'Finish')) {
-            // Find the last 'In-Progress' timestamp
-            const lastInProgress = projectUser.stateChanges
-                .filter(change => change.state === 'In-Progress')
-                .slice(-1)[0];
-
-            if (lastInProgress) {
-                const timeWorked = currentTime - new Date(lastInProgress.timestamp);
-                projectUser.totalWorkTime = (projectUser.totalWorkTime || 0) + timeWorked;
-            }
-        }
-
-        // Save the updated document
-        await projectUser.save();
-
-        res.json({ status: projectUser.status });
-
-
-}
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
 const fetchUserProjectById= async(req , res)=>{
@@ -717,6 +707,48 @@ const getAllBugsForReport = async(req , res )=>{
 
 }
 
+const getPage = async (req, res) => {
+
+    const { project } = req.query
+
+    try {
+
+        const result = await Page.findOne({ project })
+        res.status(200).send(result)
+
+    } catch (error) {
+        console.log("error : ", error)
+        res.status(500).send(error.message)
+    }
+}
+
+const setPage = async (req, res) => {
+    try {
+
+        const { project, ...updateData } = req.body; // Destructure _id and rest of the data
+
+        console.log("updateData : " , updateData) 
+        const r = await Page.findOne({ project })
+        let result;
+
+        if (r) {
+            // If _id exists, update the existing document
+            result = await Page.findOneAndUpdate(
+                { project }, // Find the document by _id
+                { $set: updateData }, // Update with the new data (everything except _id)
+                { new: true } // Return the updated document
+            );
+        } else {
+            const page = new Page(req.body)
+            result = await page.save()
+        }
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in setPage:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
 
 
 module.exports = {
@@ -738,7 +770,8 @@ module.exports = {
   updateProjectStatus, 
   fetchUserProjectById, 
   fetchAllUserReport , 
-  getAllBugsForReport
+  getAllBugsForReport , 
+  getPage, setPage 
   
 }; 
  
