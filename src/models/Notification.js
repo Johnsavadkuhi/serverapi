@@ -15,12 +15,12 @@ const NotificationSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['projectAssigned', 'message', 'alert', 'system', 'custom' ],
+    enum: ['projectAssigned', 'message', 'alert', 'system', 'custom' , 'comment' , 'ticket'],
     required: true
   },
   category: {
     type: String,
-    enum: ['project', 'chat', 'system', 'news' , 'report'],
+    enum: ['project', 'chat', 'system', 'news' , 'report' , 'ticket'],
     default: 'project'
   },
   title: {
