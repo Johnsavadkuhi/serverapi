@@ -3,7 +3,8 @@
 const { assignProjectToUser } = require("../notif/assignProjectToUser");
 const { createProject } = require("../notif/createProject");
 const { unassignProjectFromUser } = require("../notif/unassignProjectFromUser");
-const {addReport} = require("../notif/addReport")
+const {addReport} = require("../notif/addReport");
+const { newComment } = require("../notif/newComment");
 
 function registerSocketHandlers(io, socket , pubClient) {
   
@@ -26,6 +27,16 @@ function registerSocketHandlers(io, socket , pubClient) {
     console.log("****************** create project *************** event !!! ")
    await  createProject(projectId ,devOpsId ,projectName,io , pubClient)
   })
+
+
+  socket.on('newComment' , async(data) =>{
+    console.log("data of new comment ####################### : "  , data )
+
+    await newComment(data , io , pubClient )
+  })
+
+
+
 
     // Every event here is already authenticated
     socket.on('message', (data) => {
