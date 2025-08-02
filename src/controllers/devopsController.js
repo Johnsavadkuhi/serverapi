@@ -228,7 +228,21 @@ const registerDevOpsInfo = async (req, res) => {
 };
 
 
+const getDevOpsInfo = async(req , res)=>{
 
+  const {projectId , userId } = req.query 
+
+  let result = await DevOpsInfo.findOne({project:projectId  })
+
+  if(!result.isShared){
+    result = await DevOpsInfo.findOne({project:projectId , pentester : userId   })
+    console.log("result in if : " , result )
+  }
+  console.log("result in line 236 : " ,result.isShared )
+  res.status(200).json(result)
+
+
+}
 
 
 module.exports = {
@@ -237,6 +251,8 @@ getDevopsProject,
 updateDevopsProject, 
 deleteDevopsProject, 
 getDevopsProjectPentesters ,
-registerDevOpsInfo
+registerDevOpsInfo , 
+
+getDevOpsInfo
 
 }
