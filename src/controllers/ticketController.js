@@ -11,6 +11,7 @@ const TicketComment = require("../models/TicketComment");
 const unlinkAsync = util.promisify(fs.unlink);
 
 const newTicketId = async (req, res) => {
+  console.log("new ticket ID $$$$$$$$$$$$$$")
   try {
     const counter = await Counter.findOneAndUpdate(
       { name: "ticket" },

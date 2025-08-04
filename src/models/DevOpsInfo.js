@@ -4,7 +4,9 @@ const { Schema } = mongoose;
 // Subschema for login credentials
 const CredentialSchema = new Schema({
   username: String,
-  password: String
+  password: String, 
+  description: String 
+
 }, { _id: false });
 
 // Subschema for access points (endpoints)
