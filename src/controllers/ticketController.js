@@ -208,23 +208,34 @@ try {
 const getComments = async (req, res) => {
     const { ticketId } = req.query;
 
+    // Validate ticketId
     if (!ticketId) {
-        return res.status(400).json({ error: "ticketId is required" });
+        return res.status(400).json({ 
+            success: false,
+            error: "ticketId is required",
+            comments: [] // Always return empty array for consistency
+        });
     }
 
     try {
         const comments = await TicketComment.find({ ticketId })
-            .sort({ createdAt: 1 }) // newest first
-            .lean(); // optional, for performance
+            .sort({ createdAt: 1 }) // Sort by creation date (oldest first)
+            .lean(); // Convert to plain JS objects
+        
+        // Always return success with comments array (empty if none found)
+        return res.status(200).json({
+            success: true,
+            comments: comments || [], // Ensure it's always an array
+            message: comments.length ? "Comments retrieved successfully" : "No comments found"
+        });
 
-        if (!comments.length) {
-            return res.status(404).json({ message: "No comments found" });
-        }
-
-        res.status(200).json(comments);
     } catch (error) {
         console.error("Error fetching comments:", error);
-        res.status(500).json({ error: "Failed to fetch comments" });
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error",
+            comments: [] // Always return empty array even on error
+        });
     }
 };
 
