@@ -85,8 +85,8 @@ const objectId = mongoose.Types.ObjectId.createFromHexString(projectId);
 const updateBugStatus = async (req , res )=>{
 try {
     // const { projectId, bugId, status } = req.params;
-    const { projectId  , userId  , bugId , status  } = req.body;
-    console.log(projectId , userId  , bugId , status )
+    const { projectId  , userId  , bugId , status  , progress} = req.body;
+    console.log(projectId , userId  , bugId , status , progress  )
 
     const bugDoc = await ProjectUser.findOne({ project:projectId , pentester:userId  });
  
@@ -118,6 +118,15 @@ try {
 
     // Recalculate progress
     // bugDoc.progress = calculateProgress(bugDoc.bugScopes);
+// Update progress if provided
+if (progress !== undefined) {
+  const floatProgress = parseFloat(progress);
+  if (!isNaN(floatProgress)) {
+    bugDoc.progress = floatProgress;
+  } else {
+    return res.status(400).json({ message: 'Invalid progress value' });
+  }
+}
 
     // Save the updated document
     await bugDoc.save();
@@ -165,6 +174,7 @@ const updateBulkBugStatus = async (req, res) => {
         return newItem;
       });
     };
+ bugDoc.progress = 100;
 
     bugDoc.bugScopes = updateStatuses(bugDoc.bugScopes);
     bugDoc.increment();
