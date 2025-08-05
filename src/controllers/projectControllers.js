@@ -641,7 +641,7 @@ const fetchProjectByUserProjectManager = async(req , res )=>{
 
 
 // Backend API endpoint
-const updateProjectStatus = async (req, res) => {
+const updateProjectStatus1 = async (req, res) => {
   try {
     const { projectId, newStatus, timeWorked = 0 } = req.body;
 
@@ -682,7 +682,59 @@ const updateProjectStatus = async (req, res) => {
   }
 };
 
+const updateProjectStatus = async (req, res) => {
+  try {
+    const { projectId, newStatus, timeWorked = 0 } = req.body;
 
+    const project = await ProjectUser.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Validate timeWorked is a positive number
+    const validTimeWorked = Math.max(0, Number(timeWorked) || 0);
+
+    // Update total work time (ensure it never decreases)
+    project.totalWorkTime = Math.max(
+      project.totalWorkTime || 0,
+      (project.totalWorkTime || 0) + validTimeWorked
+    );
+
+    // Record state change with UTC timestamp
+    project.stateChanges.push({
+      state: newStatus,
+      timestamp: new Date().toISOString() // Store as ISO string
+    });
+
+    // Update timestamps
+    const now = new Date();
+    if (newStatus === 'In-Progress' && !project.startDate) {
+      project.startDate = now.toISOString();
+    }
+    if (newStatus === 'Finish' && !project.finishDate) {
+      project.finishDate = now.toISOString();
+    }
+
+    project.status = newStatus;
+    await project.save();
+
+    res.json({
+      status: project.status,
+      totalWorkTime: project.totalWorkTime,
+      stateChanges: project.stateChanges,
+      // Send back timestamps in ISO format
+      startDate: project.startDate,
+      finishDate: project.finishDate
+    });
+
+  } catch (error) {
+    console.error('Error updating project status:', error);
+    res.status(500).json({ 
+      message: 'Failed to update project status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 const fetchUserProjectById= async(req , res)=>{
 
   const {projectId , userId } = req.query 
