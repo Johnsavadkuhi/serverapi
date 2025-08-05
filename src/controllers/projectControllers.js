@@ -708,7 +708,7 @@ const getAllBugsForReport = async(req , res )=>{
 
   const {projectId } = req.query 
 
-  const allReports = FoundedBug.find({project:projectId})
+  const allReports = await FoundedBug.find({project:projectId})
 
   console.log("all reports : " , allReports )
 
@@ -720,10 +720,12 @@ const getAllBugsForReport = async(req , res )=>{
 const getPage = async (req, res) => {
 
     const { project } = req.query
+    console.log("project line 723  : " , project )
 
     try {
 
         const result = await Page.findOne({ project })
+        console.log("Result line 728 : " , result )
         res.status(200).send(result)
 
     } catch (error) {
@@ -735,10 +737,11 @@ const getPage = async (req, res) => {
 const setPage = async (req, res) => {
     try {
 
-        const { project, ...updateData } = req.body; // Destructure _id and rest of the data
 
-        console.log("updateData : " , updateData) 
+        const { project ,  ...updateData } = req.body.data ; // Destructure _id and rest of the data
+console.log("project in line 742 !!!!!!!!!!!!!!! : " , project , updateData )
         const r = await Page.findOne({ project })
+        console.log("r line 744 : "  , r  )
         let result;
 
         if (r) {
@@ -749,7 +752,7 @@ const setPage = async (req, res) => {
                 { new: true } // Return the updated document
             );
         } else {
-            const page = new Page(req.body)
+            const page = new Page(req.body.data )
             result = await page.save()
         }
 
@@ -760,13 +763,79 @@ const setPage = async (req, res) => {
     }
 };
 
-const postIdentifier = async(req , res)=>{
-  const {projectId , formData} = req.body 
+const postIdentifier = async (req, res) => {
+  try {
+    const { projectId, formData } = req.body;
 
-  console.log("formData : " ,formData)
+    // Validate projectId
+    if (!projectId) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
 
-  res.status(200).json("ok")
-}
+    // Define required fields
+    const requiredFields = [
+      "developer",
+      "certificateRequest",
+      "organizationalUnitName",
+      "projectManagerName",
+      // Removed phone numbers from required fields
+      "beneficiaryOffice",
+      "followerName",
+      "datacenterName",
+      "responsibleName"
+    ];
+
+    // Check for missing fields
+    const missingFields = requiredFields.filter(
+      (field) => !formData?.[field] || formData[field].toString().trim() === ""
+    );
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        missingFields,
+      });
+    }
+
+    // Proceed to update project
+    const updatedProject = await project.findByIdAndUpdate(
+      projectId,
+      { $set: { identifier: formData } },
+      { new: true }
+    );
+
+    if (!updatedProject) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    return res.status(200).json({ message: "Project identifier updated successfully" });
+
+  } catch (error) {
+    console.error("Error in postIdentifier:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+const getPentesterByProjectId = async (req, res) => {
+    try {
+        const { projectId } = req.query;
+
+        // Find all project-user associations for the given project and populate the pentester field with firstName and lastName
+        const result = await ProjectUser.find({ project: projectId })
+            .populate('pentester', 'firstName lastName profileImageUrl')
+            .populate('manager' , 'firstName , lastName'  )
+
+        // Send the populated result directly to the client
+        res.send(result);
+    } catch (error) {
+        console.error("Error fetching pentesters by project ID:", error);
+        res.status(500).send({ error: 'An error occurred while fetching pentesters.' });
+    }
+};
 
 
 module.exports = {
@@ -790,7 +859,8 @@ module.exports = {
   fetchAllUserReport , 
   getAllBugsForReport , 
   getPage, setPage ,
-  postIdentifier
+  postIdentifier , 
+  getPentesterByProjectId
   
 }; 
  

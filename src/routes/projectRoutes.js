@@ -3,7 +3,7 @@ const { getUserProjects, getManagerProjects, createProject , getBugs , updateBug
     creatReport,fetchReport , updateReport , fetchAllReports  , fetchProjectById , fetchReportById, 
     reportVerify , deleteReportById , fetchProjectByUserProjectManager ,
      updateProjectStatus , fetchUserProjectById , fetchAllUserReport , getAllBugsForReport , getPage , setPage ,postIdentifier
-     
+     , getPentesterByProjectId
  } = require('../controllers/projectControllers');
 
 
@@ -14,10 +14,6 @@ const multer  = require("multer")
 const { v4: uuidv4 } = require('uuid');
 const fs = require("fs") 
 const path = require("path")
-
-
-
-
 
   const pocStorage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -55,9 +51,6 @@ const path = require("path")
     },
   });
   
-
-
-
 const pocUpload = multer({storage:pocStorage}); 
 
 
@@ -85,9 +78,12 @@ router.put("/user/update/status" , updateProjectStatus)
 router.get("/user/project" , fetchUserProjectById)
 router.get("/reports/user/all" , fetchAllUserReport)
 router.get("/all/user/reports" , getAllBugsForReport)
-router.get("/page" , getPage )
-router.post("/page" , setPage )
+
+
+router.route("/page").post(setPage).get(getPage)
 
 router.post("/identifier" ,postIdentifier )
+
+router.get("/pentesters/byId" , getPentesterByProjectId)
 module.exports = router; 
  
