@@ -2,7 +2,7 @@ const express = require('express');
 const { getUserProjects, getManagerProjects, createProject , getBugs , updateBugStatus, updateBulkBugStatus,
     creatReport,fetchReport , updateReport , fetchAllReports  , fetchProjectById , fetchReportById, 
     reportVerify , deleteReportById , fetchProjectByUserProjectManager ,
-     updateProjectStatus , fetchUserProjectById , fetchAllUserReport , getAllBugsForReport , getPage , setPage 
+     updateProjectStatus , fetchUserProjectById , fetchAllUserReport , getAllBugsForReport , getPage , setPage ,postIdentifier
      
  } = require('../controllers/projectControllers');
 
@@ -87,5 +87,7 @@ router.get("/reports/user/all" , fetchAllUserReport)
 router.get("/all/user/reports" , getAllBugsForReport)
 router.get("/page" , getPage )
 router.post("/page" , setPage )
+
+router.post("/identifier" ,postIdentifier )
 module.exports = router; 
  

@@ -760,6 +760,14 @@ const setPage = async (req, res) => {
     }
 };
 
+const postIdentifier = async(req , res)=>{
+  const {projectId , formData} = req.body 
+
+  console.log("formData : " ,formData)
+
+  res.status(200).json("ok")
+}
+
 
 module.exports = {
   getUserProjects,
@@ -781,7 +789,8 @@ module.exports = {
   fetchUserProjectById, 
   fetchAllUserReport , 
   getAllBugsForReport , 
-  getPage, setPage 
+  getPage, setPage ,
+  postIdentifier
   
 }; 
  
