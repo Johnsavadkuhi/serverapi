@@ -773,14 +773,21 @@ console.log("projectID : " ,projectId , userId , newStatus )
 
     // اگر به In-Progress وارد شد → فقط ثبت زمان شروع
     if (newStatus === 'In-Progress' && prevStatus !== 'In-Progress') {
+      
       projectUser.stateChanges = projectUser.stateChanges || [];
     }
 
+    
+    // اگر به In-Progress وارد شد → فقط در اولین بار startDate را ست کن
+    if (newStatus === 'In-Progress' ) {
+      if (!projectUser.startDate) {
+        projectUser.startDate = now; // مقداردهی فقط یک بار
+      }
+    }
     // ثبت تاریخ پایان اگر Finish شد
     if (newStatus === 'Finish') {
-      if (!projectUser.finishDate) {
         projectUser.finishDate = now;
-      }
+      
     } else if (projectUser.finishDate) {
       // اگر reopen شد، تاریخ پایان پاک شود
       projectUser.finishDate = null;
