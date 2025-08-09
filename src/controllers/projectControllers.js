@@ -393,8 +393,8 @@ const updateReport = async (req, res) => {
     existingReport.tools = Array.isArray(tools)
       ? tools
       : tools
-      ? tools.split(",").map((t) => t.trim())
-      : [];
+        ? tools.split(",").map((t) => t.trim())
+        : [];
     existingReport.securingByOptions = {
       webServerSettings:
         webServerSecuring === "true" || webServerSecuring === true,
@@ -464,12 +464,12 @@ const fetchReportById = async (req, res) => {
 };
 
 
-function includeFile(r){
+function includeFile(r) {
   r.pocs.forEach(poc => {
     if (poc.type?.startsWith("image/")) poc.included = true;
   });
 }
-function removeFile(r){
+function removeFile(r) {
   r.pocs.forEach(poc => {
     if (poc.type?.startsWith("image/")) poc.included = false;
   });
@@ -499,7 +499,7 @@ const reportVerify = async (req, res) => {
       removeFile(report)
     } else if (previousStatus === "Verify" && state === "Duplicate") {
       report.grade = cvssScore;
-            removeFile(report)
+      removeFile(report)
 
     } else if (previousStatus === "Verify" && state === "Verify") {
       report.grade = cvssScore; // No score change, just retain the CVSS score
@@ -507,7 +507,7 @@ const reportVerify = async (req, res) => {
       report.pentester.score += 5;
       report.pentester.score += cvssScore;
       report.grade = cvssScore;
-          includeFile(report)
+      includeFile(report)
 
     } else if (previousStatus === "Not Applicable" && state === "Duplicate") {
       report.pentester.score += 5;
@@ -521,7 +521,7 @@ const reportVerify = async (req, res) => {
     } else if (previousStatus === "New" && state === "Verify") {
       report.grade = parseFloat(req.body.payload.score);
       report.pentester.score += parseFloat(req.body.payload.score);
-                includeFile(report)
+      includeFile(report)
 
     } else if (previousStatus === "New" && state === "Not Applicable") {
       report.pentester.score -= 5;
@@ -532,7 +532,7 @@ const reportVerify = async (req, res) => {
       // report.pentester.score += parseFloat(req.body.payload.score);
     } else if (previousStatus === "Duplicate" && state === "Verify") {
       report.grade = cvssScore;
-                includeFile(report)
+      includeFile(report)
 
     } else if (previousStatus === "Duplicate" && state === "Not Applicable") {
       report.pentester.score -= cvssScore;
@@ -564,7 +564,7 @@ const reportVerify = async (req, res) => {
       // No score change for this transition
       report.grade = parseFloat(req.body.payload.score);
       report.pentester.score += parseFloat(req.body.payload.score);
-                includeFile(report)
+      includeFile(report)
 
     } else if (
       previousStatus === "Need More Information" &&
@@ -684,99 +684,131 @@ const fetchProjectByUserProjectManager = async (req, res) => {
   res.status(200).json(result);
 };
 
-// Backend API endpoint
+
+
+
 const updateProjectStatus1 = async (req, res) => {
   try {
-    const { projectId, newStatus, timeWorked = 0 } = req.body;
+    const { projectId, userId, newStatus } = req.body;
 
-    const project = await ProjectUser.findById(projectId);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+    const projectUser = await ProjectUser.findOne({ project: projectId, pentester: userId });
+    if (!projectUser) return res.status(404).json({ message: 'Project not found' });
+
+
+    if (!projectUser.startDate) {
+      console.log("start date initialed for the first time : ", projectUser.startDate)
+      projectUser.startDate = new Date().toISOString();
     }
 
-    // Update total work time
-    project.totalWorkTime = (project.totalWorkTime || 0) + timeWorked;
-    project.status = newStatus;
 
-    // Record state change
-    project.stateChanges.push({
+    const currentTime = new Date()
+    const previousStatus = projectUser.status; // Store the previous status
+
+    // Update the status
+    projectUser.status = newStatus;
+
+    projectUser.stateChanges.push({
       state: newStatus,
-      timestamp: new Date(),
+      timestamp: currentTime,
     });
 
-    // Update timestamps
-    const now = new Date();
-    if (newStatus === "In-Progress" && !project.startDate) {
-      project.startDate = now;
-    }
-    if (newStatus === "Finish" && !project.finishDate) {
-      project.finishDate = now;
+
+    // Calculate the total work time only for a valid transition from 'In-Progress' to 'Pending' or 'Finish'
+    if (previousStatus === 'In-Progress' && (newStatus === 'Pending' || newStatus === 'Finish')) {
+      // Find the last 'In-Progress' timestamp
+      const lastInProgress = projectUser.stateChanges
+        .filter(change => change.state === 'In-Progress')
+        .slice(-1)[0];
+
+      if (lastInProgress) {
+        const timeWorked = currentTime - new Date(lastInProgress.timestamp);
+        projectUser.totalWorkTime = (projectUser.totalWorkTime || 0) + timeWorked;
+      }
     }
 
-    await project.save();
+    // Save the updated document
+    await projectUser.save();
+
 
     res.json({
-      status: project.status,
-      totalWorkTime: project.totalWorkTime,
-      stateChanges: project.stateChanges,
+      status: projectUser.status,
+      totalWorkTime: projectUser.totalWorkTime
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Failed to update status' });
   }
 };
 
 const updateProjectStatus = async (req, res) => {
   try {
-    const { projectId, newStatus, timeWorked = 0 } = req.body;
-
-    const project = await ProjectUser.findById(projectId);
-    if (!project) {
+    const { projectId, userId, newStatus } = req.body.projectId ;
+console.log("projectID : " ,projectId , userId , newStatus )
+    // پیدا کردن پروژه
+    const projectUser = await ProjectUser.findOne({ project: projectId, pentester: userId });
+    if (!projectUser) {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Validate timeWorked is a positive number
-    const validTimeWorked = Math.max(0, Number(timeWorked) || 0);
+    const now = new Date();
+    const prevStatus = projectUser.status || 'Open';
 
-    // Update total work time (ensure it never decreases)
-    project.totalWorkTime = Math.max(
-      project.totalWorkTime || 0,
-      (project.totalWorkTime || 0) + validTimeWorked
-    );
+    // اولین شروع پروژه
+    if (!projectUser.startDate) {
+      projectUser.startDate = now;
+    }
 
-    // Record state change with UTC timestamp
-    project.stateChanges.push({
+    // اگر از In-Progress خارج می‌شویم → محاسبه مدت کار و جمع کردن
+    if (prevStatus === 'In-Progress' && (newStatus === 'Pending' || newStatus === 'Finish' || newStatus === 'Open')) {
+      const lastInProgress = [...(projectUser.stateChanges || [])]
+        .reverse()
+        .find(change => change.state === 'In-Progress');
+
+      if (lastInProgress?.timestamp) {
+        const startTime = new Date(lastInProgress.timestamp).getTime();
+        const elapsedSec = Math.max(0, Math.floor((now.getTime() - startTime) / 1000)); // به ثانیه
+        projectUser.totalWorkTime = (projectUser.totalWorkTime || 0) + elapsedSec;
+      }
+    }
+
+    // اگر به In-Progress وارد شد → فقط ثبت زمان شروع
+    if (newStatus === 'In-Progress' && prevStatus !== 'In-Progress') {
+      projectUser.stateChanges = projectUser.stateChanges || [];
+    }
+
+    // ثبت تاریخ پایان اگر Finish شد
+    if (newStatus === 'Finish') {
+      if (!projectUser.finishDate) {
+        projectUser.finishDate = now;
+      }
+    } else if (projectUser.finishDate) {
+      // اگر reopen شد، تاریخ پایان پاک شود
+      projectUser.finishDate = null;
+    }
+
+    // تغییر وضعیت و لاگ تاریخچه
+    projectUser.status = newStatus;
+    if (!Array.isArray(projectUser.stateChanges)) projectUser.stateChanges = [];
+    projectUser.stateChanges.push({
       state: newStatus,
-      timestamp: new Date().toISOString(), // Store as ISO string
+      timestamp: now
     });
 
-    // Update timestamps
-    const now = new Date();
-    if (newStatus === "In-Progress" && !project.startDate) {
-      project.startDate = now.toISOString();
-    }
-    if (newStatus === "Finish" && !project.finishDate) {
-      project.finishDate = now.toISOString();
-    }
+    await projectUser.save();
 
-    project.status = newStatus;
-    await project.save();
-
-    res.json({
-      status: project.status,
-      totalWorkTime: project.totalWorkTime,
-      stateChanges: project.stateChanges,
-      // Send back timestamps in ISO format
-      startDate: project.startDate,
-      finishDate: project.finishDate,
+    return res.json({
+      status: projectUser.status,
+      totalWorkTime: projectUser.totalWorkTime || 0, // به ثانیه
+      stateChanges: projectUser.stateChanges,
+      startDate: projectUser.startDate,
     });
   } catch (error) {
     console.error("Error updating project status:", error);
-    res.status(500).json({
-      message: "Failed to update project status",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+    res.status(500).json({ message: "Failed to update project status" });
   }
 };
+
+
 const fetchUserProjectById = async (req, res) => {
   const { projectId, userId } = req.query;
   const result = await ProjectUser.find({
