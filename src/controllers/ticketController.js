@@ -31,7 +31,7 @@ const creatTicket = async (req, res) => {
     const {
       reporter,
       targetUser,
-      assignedTo,
+ 
       title,
       description,
       type,
@@ -176,6 +176,17 @@ try {
       user
     } = req.body;
 
+        // تبدیل فایل‌ها به ساختار attachments
+    const attachments =
+      req.files?.map((file) => ({
+        filename: file.filename,
+        url: file.path.replace(/\\/g, "/"), // برای پلتفرم ویندوز
+        type: file.mimetype,
+        size:file.size , 
+
+      })) || [];
+
+
     if (!ticket || !text || !user || !ticketId) {
       return res.status(400).json({ message: "Missing required fields: ticketId, text, or user." });
     }
@@ -184,7 +195,8 @@ try {
       ticketId,
       ticket,
       user,
-      text
+      text,
+      attachments
     });
 
     const result = await newComment.save();
