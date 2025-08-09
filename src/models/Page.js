@@ -35,5 +35,7 @@ const PageSchema = new mongoose.Schema({
 
 // Add an index for better querying
 PageSchema.index({ project: 1, projectManager: 1 });
+PageSchema.index({ project: 1 }); // ایندکس تکی برای جستجوی سریع‌تر
+PageSchema.index({ projectManager: 1 }); // ایندکس تکی برای جستجوی سریع‌تر
 
 module.exports = mongoose.model('Page', PageSchema);
