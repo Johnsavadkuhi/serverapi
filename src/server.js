@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 5000;
 // Middlewares
 app.use(cors({
   origin: ['http://localhost:5173', 'http://10.10.10.120:5173' , 'http://10.10.10.120:3001' , 'http://localhost:4000' , 'http://10.10.10.120:4000' , 
-    'http://10.10.10.120:3000' , 'http://localhost:3000'
+    'http://10.10.10.120:3000' , 'http://localhost:3000', 'http://172.20.10.3:5173'
   ] ,
   credentials: true,
 }));
