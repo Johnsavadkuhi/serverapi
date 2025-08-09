@@ -5,10 +5,13 @@ function verifyToken(req, res, next) {
   // Get token from cookies
   const token = req.cookies.token;
   if (!token) {
+    console.log("validate token  in if (!token ): " , req)
     return res.status(401).json({ message: 'No token provided. Unauthorized.' });
   }
 
   try {
+        console.log("validate token  in try : " , token)
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // attach user info to request
     next();
