@@ -103,8 +103,8 @@ index:true
       },
       size: {
         type: Number,
-        max: 10 * 1024 * 1024, // 10MB
-        required: true
+        max: 1000 * 1024 * 1024, // 1000MB
+      
       },
       uploadedAt: {
         type: Date,
@@ -128,13 +128,7 @@ index:true
     type: Date
   },
 
-  /**
-   * تاریخچه ویرایش‌ها (اختیاری)
-   */
-//   editHistory: [{
-//     text: String,
-//     editedAt: Date
-//   }],
+
 
   /**
    * امتیاز (در صورت نیاز)
@@ -222,24 +216,6 @@ readBy: [
 });
 
 
-// ⏱ Middleware برای بروزرسانی اتوماتیک زمان و ویرایش
-// TicketCommentSchema.pre('save', function (next) {
-//   this.updatedAt = new Date();
-
-//   if (this.isModified('text')) {
-//     this.isEdited = true;
-//     this.editedAt = new Date();
-
-//     // اضافه به تاریخچه ویرایش
-//     if (!this.editHistory) this.editHistory = [];
-//     this.editHistory.push({
-//       text: this.text,
-//       editedAt: this.editedAt
-//     });
-//   }
-
-//   next();
-// });
 
 // 📌 ایندکس‌ها
 TicketCommentSchema.index({ text: 'text' });
