@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-
+//included is for adding file to report
 const PocSchema = new Schema({
     originalname: String,
     encoding:String , 
@@ -9,7 +9,8 @@ const PocSchema = new Schema({
     destination:String , 
     filename:String , 
     path: String,
-    size:String
+    size:String,
+    included:{type:Boolean , default:false} 
 
 }, { _id: false });
 
@@ -75,10 +76,19 @@ const FoundedBugSchema = new Schema({
 
 
 // Ensure a pentester can have only one scope per project
+
 FoundedBugSchema.index({ project: 1, pentester: 1, id: 1, _id: 1, state: 1 });
-
-
-
-
+// ایندکس‌های ترکیبی اصلی (کاهش تعداد از 11 به 7)
+FoundedBugSchema.index({ project: 1, pentester: 1, state: 1 }); // جایگزین چند ایندکس
+FoundedBugSchema.index({ project: 1, state: 1 });
+FoundedBugSchema.index({ severity: 1, verify: 1 });
+FoundedBugSchema.index({ projectManager: 1, state: 1 });
+FoundedBugSchema.index({ adminVerify: 1, project: 1 });
+FoundedBugSchema.index({ CVSS: 1, severity: 1 });
+FoundedBugSchema.index({ created_at: -1 }); // اضافه شده
+FoundedBugSchema.index({ updated_at: -1 }); // اضافه شده
+// ایندکس‌های تکی فقط برای فیلدهای واقعاً نیازمند
+FoundedBugSchema.index({ id: 1 }); // اگر جستجوی مکرر توسط id دارید
+ 
 const FoundedBug = mongoose.model('FoundedBug', FoundedBugSchema);
 module.exports = FoundedBug 
