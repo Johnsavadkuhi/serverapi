@@ -17,7 +17,8 @@ module.exports = async function initializeSocket(server) {
       'https://admin.socket.io', 
       'http://10.10.10.120:5173', 
       'http://10.10.10.120:3001', 
-      'http://10.10.10.120:4000'
+      'http://10.10.10.120:4000',
+      'http://172.20.10.3:5173'
     ],
     redisOptions: {
       lazyConnect: true,
