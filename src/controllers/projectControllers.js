@@ -930,6 +930,9 @@ const postIdentifier = async (req, res) => {
       "followerName",
       "datacenterName",
       "responsibleName",
+      "projectAcceptanceDate", 
+      "reportIssueDate", 
+    "testDate",
     ];
 
     // Check for missing fields
@@ -986,6 +989,19 @@ const getPentesterByProjectId = async (req, res) => {
   }
 };
 
+const getProjectById = async(req , res)=>{
+
+  const {projectId }  = req.query 
+
+  const result =await  project.findOne({_id:projectId})
+
+  console.log(result ) 
+
+  res.status(200).json(result)
+
+
+}
+
 module.exports = {
   getUserProjects,
   getManagerProjects,
@@ -1010,4 +1026,5 @@ module.exports = {
   setPage,
   postIdentifier,
   getPentesterByProjectId,
+  getProjectById
 };

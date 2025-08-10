@@ -15,6 +15,9 @@ const projectIdentifier = new Schema({
     datacenterName: String,
     responsibleName: String,
     datacenterPhoneNumber: String,
+    projectAcceptanceDate: { type: Date, required: true },
+  reportIssueDate:      { type: Date, required: true },
+  testDate:             { type: Date, required: true }, 
 
 }, { _id: false })
 
@@ -70,6 +73,7 @@ const projectSchema = new Schema({
     verifiedByAdmin: {
         type: Date
     },
+    verifiedReportByAdmin:Date, 
     created_date: {
         type: Date,
         default: () => new Date().toISOString()
