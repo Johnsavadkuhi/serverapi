@@ -4,7 +4,7 @@ const { getUserProjects, getManagerProjects, createProject , getBugs , updateBug
     reportVerify , deleteReportById , fetchProjectByUserProjectManager ,
      updateProjectStatus , fetchUserProjectById , fetchAllUserReport , getAllBugsForReport , getPage , setPage ,postIdentifier
      , getPentesterByProjectId , 
-     getProjectById
+     getProjectById , updateReadAccess 
  } = require('../controllers/projectControllers');
 
 
@@ -89,5 +89,6 @@ router.get("/pentesters/byId" , getPentesterByProjectId)
 
 router.get("/project/byid" , getProjectById)
 
+router.post("/update/bug/readaccess" , updateReadAccess)
 module.exports = router; 
  
