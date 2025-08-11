@@ -933,6 +933,7 @@ const postIdentifier = async (req, res) => {
       "projectAcceptanceDate", 
       "reportIssueDate", 
     "testDate",
+    "docId"
     ];
 
     // Check for missing fields
@@ -1002,6 +1003,55 @@ const getProjectById = async(req , res)=>{
 
 }
 
+const updateReadAccess = async(req , res)=>{
+
+ try {
+    const { reportId, userIds } = req.body;
+
+    if (!reportId || !Array.isArray(userIds)) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    if (!mongoose.isValidObjectId(reportId)) {
+      return res.status(400).json({ message: 'Invalid reportId' });
+    }
+
+    // فقط آیدی‌های معتبر + یکتا
+    const validUserIds = [...new Set(userIds)]
+      .filter((id) => mongoose.isValidObjectId(id));
+
+    // تبدیل به ObjectId
+    const objectIds = validUserIds.map((id) => new mongoose.Types.ObjectId(id));
+
+    const updated = await FoundedBug.findByIdAndUpdate(
+      reportId,
+      { $set: { readAccess: objectIds } }, // کل لیست را ست می‌کند
+      { new: true, runValidators: true }
+    ).select('_id readAccess');
+
+    console.log("reportId : " , reportId, userIds )
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    // اگر خواستی رشته برگردونی:
+    const readAccess = (updated.readAccess || []).map((oid) => String(oid));
+    return res.status(200).json({ ok: true, readAccess });
+  } catch (e) {
+    console.error('read-access error:', e);
+    return res.status(500).json({ message: 'Server error', error: e.message });
+  }
+
+
+
+
+
+}
+
+
+
+
 module.exports = {
   getUserProjects,
   getManagerProjects,
@@ -1026,5 +1076,6 @@ module.exports = {
   setPage,
   postIdentifier,
   getPentesterByProjectId,
-  getProjectById
+  getProjectById , 
+  updateReadAccess
 };
