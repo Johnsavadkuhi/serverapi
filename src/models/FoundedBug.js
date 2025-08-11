@@ -89,6 +89,10 @@ FoundedBugSchema.index({ created_at: -1 }); // اضافه شده
 FoundedBugSchema.index({ updated_at: -1 }); // اضافه شده
 // ایندکس‌های تکی فقط برای فیلدهای واقعاً نیازمند
 FoundedBugSchema.index({ id: 1 }); // اگر جستجوی مکرر توسط id دارید
- 
+FoundedBugSchema.index({ readAccess: 1 }); // multikey index
+FoundedBugSchema.index({ project: 1, readAccess: 1 });
+FoundedBugSchema.index({ pentester: 1, readAccess: 1 });
+FoundedBugSchema.index({project:1,  pentester: 1, readAccess: 1 });
+
 const FoundedBug = mongoose.model('FoundedBug', FoundedBugSchema);
 module.exports = FoundedBug 
