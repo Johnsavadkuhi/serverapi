@@ -7,6 +7,10 @@ const path = require("path");
 const util = require("util");
 const Page = require("../models/Page");
 const unlinkAsync = util.promisify(fs.unlink);
+const fsp = require('fs/promises');
+const os = require('os');
+const { spawnSync, spawn } = require('child_process');
+const archiver = require('archiver');
 
 const getUserProjects = async (req, res) => {
   const userId = req.query.userId;
@@ -1081,6 +1085,150 @@ const getIdentifier = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'upload');
+function rarAvailable() {
+  try {
+    const out = spawnSync('rar', ['-v'], { encoding: 'utf8' });
+    return out.status === 0 || (out.stdout || '').includes('RAR');
+  } catch {
+    return false;
+  }
+}
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+/** Safely resolve absolute path + relative path (to projectRoot) for a POC. */
+function resolvePocPath(poc, bug, projectRoot) {
+  let raw = poc?.path;
+  if (!raw) {
+    // fallback reconstruction (usually not needed if you store 'path')
+    const fname = poc.filename || poc.originalname;
+    const folder = bug.label || bug.id || 'unnamed-bug';
+    raw = path.join(UPLOAD_ROOT, String(bug.project), folder, fname);
+  }
+  const abs = path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+
+  // Security: must live under this project's folder
+  const relToProject = path.relative(projectRoot, abs);
+  if (relToProject.startsWith('..') || path.isAbsolute(relToProject)) return null;
+
+  return { abs, rel: relToProject };
+}
+/** Decide if a POC should be included per your rules. */
+function shouldIncludePoc(p) {
+  const hasIncluded = Object.prototype.hasOwnProperty.call(p, 'included');
+  if (hasIncluded) return !!p.included;
+
+  // No 'included' flag → include only images, skip videos/others
+  const t = typeof p.type === 'string' ? p.type.toLowerCase() : '';
+  return t.startsWith('image/');
+}
+const pocsArchive = async(req , res)=>{
+
+  const {projectId} = req.query 
+  console.log("project id : " , projectId )
+  if (!projectId) return res.status(400).json({ message: 'projectId is required' });
+
+try {
+
+    // Only VERIFIED bugs
+    const bugs = await FoundedBug.find({
+      project: projectId,
+      state: "Verify"
+    })
+      .select('project label id pocs state')
+      .lean();
+
+      // console.log("bugs : " , bugs ) 
+
+    const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
+    const files = [];
+console.log("projectRoot : " , projectRoot )
+    for (const bug of bugs) {
+      if (!Array.isArray(bug.pocs)) continue;
+
+      for (const p of bug.pocs) {
+        if (!shouldIncludePoc(p)) continue;
+
+        console.log("bug *********** : " , p )
+        const resolved = resolvePocPath(p, bug, projectRoot);
+
+        console.log("resolve : " , resolved)
+        if (!resolved) continue;
+
+        const { abs, rel } = resolved;
+        try {
+          const stat = fs.statSync(abs);
+          if (stat.isFile()) files.push({ abs, rel });
+        } catch {
+          // file missing → skip
+        }
+      }
+    }
+
+    if (files.length === 0) {
+      return res.status(404).json({ message: 'No eligible POC files found for verified bugs.' });
+    }
+
+    await fsp.mkdir(projectRoot, { recursive: true });
+
+    const base = `${projectId}-verified-pocs-${nowStamp()}`;
+
+    // Prefer RAR if available
+    if (rarAvailable()) {
+      const rarPath = path.join(os.tmpdir(), `${base}.rar`);
+      const listPath = path.join(os.tmpdir(), `${base}-list.txt`);
+      await fsp.writeFile(listPath, files.map(f => f.rel).join('\n'), 'utf8');
+
+      await new Promise((resolve, reject) => {
+        const rar = spawn(
+          'rar',
+          ['a', '-idq', '-scu', '-ep1', rarPath, `@${listPath}`],
+          { cwd: projectRoot }
+        );
+        rar.on('error', reject);
+        rar.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`rar exit ${code}`))));
+      });
+
+      res.setHeader('Content-Type', 'application/vnd.rar');
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(rarPath)}"`);
+      const stream = fs.createReadStream(rarPath);
+      stream.on('close', async () => {
+        try { await fsp.unlink(rarPath); } catch {}
+        try { await fsp.unlink(listPath); } catch {}
+      });
+      stream.pipe(res);
+      return;
+    }
+
+    // ZIP fallback (stream directly)
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${base}.zip"`);
+    res.setHeader('X-Archive-Fallback', 'zip');
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', (err) => {
+      if (!res.headersSent) res.status(500);
+      res.end(`Archive error: ${err.message}`);
+    });
+    archive.pipe(res);
+    for (const f of files) archive.file(f.abs, { name: f.rel });
+    await archive.finalize();
+  } catch (err) {
+    console.error('pocs-archive error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: err.message || 'Internal server error' });
+    } else {
+      res.end();
+    }
+  }
+
+
+}
+
 
 
 module.exports = {
@@ -1108,6 +1256,6 @@ module.exports = {
   postIdentifier,
   getPentesterByProjectId,
   getProjectById , 
-  updateReadAccess , getIdentifier
+  updateReadAccess , getIdentifier , pocsArchive 
 
 };
