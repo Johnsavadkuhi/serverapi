@@ -1049,7 +1049,17 @@ const updateReadAccess = async(req , res)=>{
 
 }
 
+const getIdentifier = async(req , res)=>{
 
+  const {projectId } = req.query 
+
+  console.log("project id in identifier : " , projectId )
+  const result = await project.findById(projectId)
+
+  console.log("result : " , result )
+  res.status(200).json(result.identifier )
+
+}
 
 
 module.exports = {
@@ -1077,5 +1087,6 @@ module.exports = {
   postIdentifier,
   getPentesterByProjectId,
   getProjectById , 
-  updateReadAccess
+  updateReadAccess , getIdentifier
+
 };
