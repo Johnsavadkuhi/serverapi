@@ -1049,17 +1049,38 @@ const updateReadAccess = async(req , res)=>{
 
 }
 
-const getIdentifier = async(req , res)=>{
+const getIdentifier = async (req, res) => {
+  try {
+    const { projectId } = req.query;
 
-  const {projectId } = req.query 
+    if (!projectId) {
+      return res.status(400).json({ message: 'projectId is required' });
+    }
+    if (!mongoose.isValidObjectId(projectId)) {
+      return res.status(400).json({ message: 'Invalid projectId format' });
+    }
 
-  console.log("project id in identifier : " , projectId )
-  const result = await project.findById(projectId)
+    // Only fetch what you need
+    const doc = await project.findById(projectId).select('identifier').lean();
 
-  console.log("result : " , result )
-  res.status(200).json(result.identifier )
+    if (!doc) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    if (!doc.identifier) {
+      // Frontend expects 404 when there is no identifier yet
+      return res.status(404).json({ message: 'Identifier not found for this project' });
+    }
 
-}
+    return res.status(200).json(doc.identifier);
+  } catch (err) {
+    // CastError is covered by isValidObjectId, but keep this as a safety net
+    if (err?.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid projectId format' });
+    }
+    console.error('getIdentifier error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
 
 module.exports = {
