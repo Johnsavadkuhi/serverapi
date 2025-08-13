@@ -39,7 +39,7 @@ const TicketSchema = new mongoose.Schema({
     default:"web"
 
   },
-  // دسته‌بندی تیکت از نظر امنیت یا کیفیت
+    // دسته‌بندی تیکت از نظر امنیت یا کیفیت
   category: {
     type: String,
     enum: ['security', 'quality'],
