@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const {creatTicket , updateTicket , newTicketId , 
-    getTickets , getTicketById , createComment , getComments  } = require("../controllers/ticketController")
+    getTickets , getTicketById , createComment , getComments , 
+updateStatus } = require("../controllers/ticketController")
 
 const ticketUpload = require("../config/ticketUpload")
 
@@ -14,5 +15,7 @@ router.route("/creat").post(ticketUpload.array('attachments', 100) , creatTicket
 
 router.route("/comment").post(ticketUpload.array('comments' , 100) , createComment)
 .get(getComments)
+
+router.post("/status" , updateStatus)
 
 module.exports = router; 
