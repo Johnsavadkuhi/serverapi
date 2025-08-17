@@ -746,8 +746,8 @@ const updateProjectStatus1 = async (req, res) => {
 
 const updateProjectStatus = async (req, res) => {
   try {
-    const { projectId, userId, newStatus } = req.body.projectId ;
-console.log("projectID : " ,projectId , userId , newStatus )
+    const { projectId, userId, newStatus } = req.body.projectId;
+    console.log("projectID : ", projectId, userId, newStatus)
     // پیدا کردن پروژه
     const projectUser = await ProjectUser.findOne({ project: projectId, pentester: userId });
     if (!projectUser) {
@@ -777,21 +777,21 @@ console.log("projectID : " ,projectId , userId , newStatus )
 
     // اگر به In-Progress وارد شد → فقط ثبت زمان شروع
     if (newStatus === 'In-Progress' && prevStatus !== 'In-Progress') {
-      
+
       projectUser.stateChanges = projectUser.stateChanges || [];
     }
 
-    
+
     // اگر به In-Progress وارد شد → فقط در اولین بار startDate را ست کن
-    if (newStatus === 'In-Progress' ) {
+    if (newStatus === 'In-Progress') {
       if (!projectUser.startDate) {
         projectUser.startDate = now; // مقداردهی فقط یک بار
       }
     }
     // ثبت تاریخ پایان اگر Finish شد
     if (newStatus === 'Finish') {
-        projectUser.finishDate = now;
-      
+      projectUser.finishDate = now;
+
     } else if (projectUser.finishDate) {
       // اگر reopen شد، تاریخ پایان پاک شود
       projectUser.finishDate = null;
@@ -934,10 +934,10 @@ const postIdentifier = async (req, res) => {
       "followerName",
       "datacenterName",
       "responsibleName",
-      "projectAcceptanceDate", 
-      "reportIssueDate", 
-    "testDate",
-    "docId"
+      "projectAcceptanceDate",
+      "reportIssueDate",
+      "testDate",
+      "docId"
     ];
 
     // Check for missing fields
@@ -994,22 +994,22 @@ const getPentesterByProjectId = async (req, res) => {
   }
 };
 
-const getProjectById = async(req , res)=>{
+const getProjectById = async (req, res) => {
 
-  const {projectId }  = req.query 
+  const { projectId } = req.query
 
-  const result =await  project.findOne({_id:projectId})
+  const result = await project.findOne({ _id: projectId })
 
-  console.log(result ) 
+  console.log(result)
 
   res.status(200).json(result)
 
 
 }
 
-const updateReadAccess = async(req , res)=>{
+const updateReadAccess = async (req, res) => {
 
- try {
+  try {
     const { reportId, userIds } = req.body;
 
     if (!reportId || !Array.isArray(userIds)) {
@@ -1033,7 +1033,7 @@ const updateReadAccess = async(req , res)=>{
       { new: true, runValidators: true }
     ).select('_id readAccess');
 
-    console.log("reportId : " , reportId, userIds )
+    console.log("reportId : ", reportId, userIds)
 
     if (!updated) {
       return res.status(404).json({ message: 'Report not found' });
@@ -1126,13 +1126,13 @@ function shouldIncludePoc(p) {
   const t = typeof p.type === 'string' ? p.type.toLowerCase() : '';
   return t.startsWith('image/');
 }
-const pocsArchive = async(req , res)=>{
+const pocsArchive = async (req, res) => {
 
-  const {projectId} = req.query 
-  console.log("project id : " , projectId )
+  const { projectId } = req.query
+  console.log("project id : ", projectId)
   if (!projectId) return res.status(400).json({ message: 'projectId is required' });
 
-try {
+  try {
 
     // Only VERIFIED bugs
     const bugs = await FoundedBug.find({
@@ -1142,21 +1142,21 @@ try {
       .select('project label id pocs state')
       .lean();
 
-      // console.log("bugs : " , bugs ) 
+    // console.log("bugs : " , bugs ) 
 
     const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
     const files = [];
-console.log("projectRoot : " , projectRoot )
+    console.log("projectRoot : ", projectRoot)
     for (const bug of bugs) {
       if (!Array.isArray(bug.pocs)) continue;
 
       for (const p of bug.pocs) {
         if (!shouldIncludePoc(p)) continue;
 
-        console.log("bug *********** : " , p )
+        console.log("bug *********** : ", p)
         const resolved = resolvePocPath(p, bug, projectRoot);
 
-        console.log("resolve : " , resolved)
+        console.log("resolve : ", resolved)
         if (!resolved) continue;
 
         const { abs, rel } = resolved;
@@ -1197,8 +1197,8 @@ console.log("projectRoot : " , projectRoot )
       res.setHeader('Content-Disposition', `attachment; filename="${path.basename(rarPath)}"`);
       const stream = fs.createReadStream(rarPath);
       stream.on('close', async () => {
-        try { await fsp.unlink(rarPath); } catch {}
-        try { await fsp.unlink(listPath); } catch {}
+        try { await fsp.unlink(rarPath); } catch { }
+        try { await fsp.unlink(listPath); } catch { }
       });
       stream.pipe(res);
       return;
@@ -1230,6 +1230,61 @@ console.log("projectRoot : " , projectRoot )
 }
 
 
+const saveProjectDates = async (req, res) => {
+  try {
+    const { projectId, userId, date, dateType } = req.body;
+
+    // Validate inputs
+    if (!projectId || !userId || !date || !dateType) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (dateType !== 'start' && dateType !== 'finish') {
+      return res.status(400).json({ error: "Invalid dateType. Must be 'start' or 'finish'" });
+    }
+
+    // Find the project
+    const project = await ProjectUser.findOne({
+      project: projectId,
+      pentester: userId
+    });
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found or unauthorized" });
+    }
+
+    // Update the appropriate date field
+    if (dateType === 'start') {
+      project.startDate = new Date(date);
+    } else {
+      if (project.startDate && new Date(date) < project.startDate) {
+        return res.status(400).json({
+          error: "Finish date must be after start date",
+          message: "Finish date must be after start date", // Add this line
+          code: 1005
+        });
+      }
+      project.finishDate = new Date(date);
+    }
+
+    await project.save();
+
+    res.status(200).json({
+      message: "Date updated successfully",
+      project: {
+        startDate: project.startDate,
+        finishDate: project.finishDate
+      }
+    });
+
+  } catch (error) {
+    console.error("Error saving project dates:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+
+
 
 module.exports = {
   getUserProjects,
@@ -1255,7 +1310,9 @@ module.exports = {
   setPage,
   postIdentifier,
   getPentesterByProjectId,
-  getProjectById , 
-  updateReadAccess , getIdentifier , pocsArchive 
+  getProjectById,
+  updateReadAccess, getIdentifier,
+  pocsArchive,
+  saveProjectDates
 
 };
