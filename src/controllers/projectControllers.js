@@ -254,6 +254,9 @@ const creatReport = async (req, res) => {
       _id,
     } = req.body;
 
+
+    console.log("description  **************************** : " , description )
+
     // Check for duplicates (optional)
     const existing = await FoundedBug.findOne({ _id });
     if (existing) {
@@ -294,7 +297,7 @@ const creatReport = async (req, res) => {
       securingByWAF: wafPossibility,
       refrence,
       cvssVector,
-      description: "",
+      
     });
 
     await newBug.save();
