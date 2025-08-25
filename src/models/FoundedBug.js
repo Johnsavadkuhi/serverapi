@@ -39,7 +39,7 @@ const FoundedBugSchema = new Schema({
     other_information: String,
     pocs: [PocSchema],
     verify: Boolean,
-    path: String,
+    path:  { type: String, required: true },
     solutions: String,
     exploits: String,
     tools: [String],
@@ -70,7 +70,19 @@ const FoundedBugSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }] , 
-    cvssVector : {type :String  }
+    cvssVector : {type :String  } , 
+    httpMethod: {
+        type: String,
+        enum: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
+        required: true
+    },
+  parameter: { type: String }, // مثلا username یا ?id=123
+parameters: [{ key: String, value: String }],
+  isDuplicateOf: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "FoundedBug",
+        default: null
+    }
 
 })
 
@@ -93,6 +105,28 @@ FoundedBugSchema.index({ readAccess: 1 }); // multikey index
 FoundedBugSchema.index({ project: 1, readAccess: 1 });
 FoundedBugSchema.index({ pentester: 1, readAccess: 1 });
 FoundedBugSchema.index({project:1,  pentester: 1, readAccess: 1 });
+FoundedBugSchema.index({ project: 1, path: 1, httpMethod: 1, parameter: 1 });
+
+FoundedBugSchema.pre("save", async function(next) {
+    if (!this.isNew) return next();
+
+    const existing = await mongoose.model("FoundedBug").findOne({
+        project: this.project,
+        path: this.path,
+        httpMethod: this.httpMethod,
+        parameter: this.parameter,
+        id:this.id, 
+        state: { $ne: "Closed" } // فقط باگ‌های فعال
+    });
+
+    if (existing) {
+        console.log("existing the bug ###################  : " , this.id , this.label )
+        this.isDuplicateOf = existing._id;
+        this.state = "Duplicate";
+    }
+
+    next();
+});
 
 const FoundedBug = mongoose.model('FoundedBug', FoundedBugSchema);
 module.exports = FoundedBug 
