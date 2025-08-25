@@ -251,11 +251,13 @@ const creatReport = async (req, res) => {
       cvssScore,
       cvssVector,
       cvssSeverity,
+      httpMethod, 
+      parameter , 
       _id,
     } = req.body;
 
 
-    console.log("description  **************************** : " , description )
+ 
 
     // Check for duplicates (optional)
     const existing = await FoundedBug.findOne({ _id });
@@ -284,6 +286,8 @@ const creatReport = async (req, res) => {
       other_information: "",
       pocs,
       path,
+      httpMethod, 
+      parameter, 
       solutions: solution,
       exploits: exploit,
       tools: Array.isArray(tools) ? tools : tools ? [tools] : [], // Ensure it's an array
@@ -344,6 +348,8 @@ const updateReport = async (req, res) => {
       cvssVector,
       cvssSeverity,
       existingFiles, // Array of existing file IDs to keep
+      httpMethod, 
+      parameter, 
       _id, // ID of the report to update
     } = req.body;
 
@@ -394,6 +400,8 @@ const updateReport = async (req, res) => {
     existingReport.CVE = cve;
     existingReport.impact = impact;
     existingReport.path = reportPath;
+    existingReport.httpMethod = httpMethod , 
+    existingReport.parameter = parameter, 
     (existingReport.description = description),
       (existingReport.solutions = solution);
     existingReport.exploits = exploit;
