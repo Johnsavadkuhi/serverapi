@@ -39,7 +39,7 @@ const FoundedBugSchema = new Schema({
     other_information: String,
     pocs: [PocSchema],
     verify: Boolean,
-    path:  { type: String, required: true },
+    path:  { type: String },
     solutions: String,
     exploits: String,
     tools: [String],
@@ -73,8 +73,7 @@ const FoundedBugSchema = new Schema({
     cvssVector : {type :String  } , 
     httpMethod: {
         type: String,
-        enum: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-        required: true
+        enum: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
     },
   parameter: { type: String }, // مثلا username یا ?id=123
 parameters: [{ key: String, value: String }],
