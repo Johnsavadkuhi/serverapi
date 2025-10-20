@@ -82,7 +82,9 @@ const projectSchema = new Schema({
 
     identifier: projectIdentifier,
     status: { type: "String", default: "Open" },
-    numberOfTest: Number
+    numberOfTest: Number, 
+    reportPassword: { type: String, default: "" },
+
 
 });
 
