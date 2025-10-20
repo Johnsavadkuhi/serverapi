@@ -11,8 +11,9 @@ const notificationRoutes = require("./routes/notificationRoutes")
 const owaspRoutes = require("./routes/owaspRoutes")
 const devopsRoutes = require("./routes/devopsRoutes")
 const ticketRoutes = require("./routes/ticketRoutes")
+const assetsReoues = require("./routes/assetsRoutes")
 const initializeSocket = require('./socket/');
-const connectDB = require('./config/dbConfig');
+const connectDB = require('./config/dbConfig'); 
 const cors = require("cors");
 const { verifyToken } = require('./middleware/verifyToken');
 const app = express();
@@ -55,6 +56,7 @@ app.use("/api/notification"  ,notificationRoutes )
 app.use('/api/owasp' , owaspRoutes)
 app.use("/api/devops" , devopsRoutes)
 app.use("/api/ticket" , ticketRoutes)
+app.use("/api/assets" , assetsReoues)
 // Create HTTP server
 const server = http.createServer(app);
 
