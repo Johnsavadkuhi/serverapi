@@ -115,10 +115,62 @@ const assetSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+// بعد از تعریف اسکیمای assetSchema
+
+// 1️⃣ فیلدهای یکتا (قبلاً تعریف شده)
+assetSchema.index({ serialNumber: 1 }, { unique: true, sparse: true });
+assetSchema.index({ licenseKey: 1 }, { unique: true, sparse: true });
+
+// 2️⃣ فیلدهای جستجو و فیلتر معمول
+assetSchema.index({ name: 1 });
+assetSchema.index({ type: 1 });
+assetSchema.index({ ownerType: 1 });
+assetSchema.index({ status: 1 });
+assetSchema.index({ departmentScope: 1 });
+assetSchema.index({ platforms: 1 });
+assetSchema.index({ tags: 1 });
+
+// 3️⃣ روابط بین موجودیت‌ها (برای populate سریع)
+assetSchema.index({ owner: 1 });
+assetSchema.index({ assignedTo: 1 });
+
+// 4️⃣ ایندکس‌های زمانی برای گزارش‌گیری و تاریخچه
+assetSchema.index({ purchaseDate: -1 });
+assetSchema.index({ warrantyExpiry: -1 });
+assetSchema.index({ maintenanceSchedule: -1 });
+assetSchema.index({ licenseExpiry: -1 });
+assetSchema.index({ createdAt: -1 });
+assetSchema.index({ updatedAt: -1 });
+
+// 5️⃣ ایندکس ترکیبی برای جستجوهای پرتکرار
+// مثلاً: پیدا کردن دارایی‌های فعال در یک دپارتمان خاص
+assetSchema.index({ departmentScope: 1, status: 1 });
+
+// مثلاً: پیدا کردن دارایی‌های متعلق به یک کاربر خاص
+assetSchema.index({ ownerType: 1, owner: 1 });
+
+// مثلاً: جستجو بر اساس تگ و وضعیت (برای فیلتر در UI)
+assetSchema.index({ tags: 1, status: 1 });
+
+// مثلاً: برای گزارش هزینه‌ها بر اساس نوع و دپارتمان
+assetSchema.index({ type: 1, departmentScope: 1, cost: -1 });
+
+// 6️⃣ جستجوی متنی (برای سرچ کلی در اسم و توضیحات)
+assetSchema.index({
+  name: "text",
+  description: "text",
+  brand: "text",
+  model: "text",
+  vendor: "text",
+  tags: "text"
+});
+
+
+
 // Automatically update `updatedAt` on save
 assetSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model("Asset", assetSchema);
+module.exports = mongoose.model("Assets", assetSchema);
