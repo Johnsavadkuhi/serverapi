@@ -40,16 +40,16 @@ const assetSchema = new mongoose.Schema({
   version: { type: String },
 
   // Unique serial number for hardware
-  serialNumber: { type: String, unique: true, sparse: true },
+serialNumber: { type: String, trim: true },
 
   // Software license key (if applicable)
-  licenseKey: { type: String, unique: true, sparse: true },
+  licenseKey: { type: String, trim: true },
 
   // MAC address (for network devices)
-  macAddress: { type: String },
+  macAddress: { type: String, trim: true },
 
   // IP address (for network-related assets)
-  ipAddress: { type: String },
+  ipAddress: { type: String , trim:true },
 
   // Current status of the asset
   status: {
@@ -118,8 +118,20 @@ const assetSchema = new mongoose.Schema({
 // بعد از تعریف اسکیمای assetSchema
 
 // 1️⃣ فیلدهای یکتا (قبلاً تعریف شده)
-assetSchema.index({ serialNumber: 1 }, { unique: true, sparse: true });
-assetSchema.index({ licenseKey: 1 }, { unique: true, sparse: true });
+assetSchema.index(
+  { serialNumber: 1 },
+  { unique: true, partialFilterExpression: { serialNumber: { $type: "string", $ne: "" } } }
+);
+assetSchema.index(
+  { macAddress: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      macAddress: { $type: "string", $ne: "" },
+    },
+  }
+);
+assetSchema.index({ licenseKey: 1 });
 
 // 2️⃣ فیلدهای جستجو و فیلتر معمول
 assetSchema.index({ name: 1 });
