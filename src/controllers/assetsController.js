@@ -1,4 +1,4 @@
-const mongoose= require("mongoose")
+const mongoose = require("mongoose")
 const Assets = require("../models/Assets")
 
 
@@ -14,7 +14,7 @@ const addAsset = async (req, res) => {
       });
     }
 
-    const { name, type, ownerType, owner, departmentScope, platforms, serialNumber } = formData;
+    const { name, type, ownerType, owner, departmentScope, platforms, serialNumber, assetCode } = formData;
 
     // Required fields
     if (!name || !type || !ownerType || !departmentScope?.length || !platforms?.length) {
@@ -25,9 +25,21 @@ const addAsset = async (req, res) => {
       });
     }
 
+    // Conditional assetCode validation
+    if ((ownerType === "bank" || ownerType === "lab") && !assetCode?.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Field 'assetCode' is required for bank or lab owned assets.",
+        },
+        { status: 400 }
+      );
+    }
+
+
     // Enums
     const validTypes = ["hardware", "software"];
-    const validOwnerTypes = ["bank", "user"];
+    const validOwnerTypes = ["bank", 'lab', "user"];
     const validDepartments = ["security", "quality"];
     const validPlatforms = ["web", "mobile", "desktop", "api"];
 
@@ -65,6 +77,19 @@ const addAsset = async (req, res) => {
         success: false,
         message: "Field 'owner' is required when ownerType is 'user'.",
       });
+    }
+    // Unique assetCode check
+    if (assetCode) {
+      const existingAssetCode = await Assets.findOne({ assetCode });
+      if (existingAssetCode) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `An asset with code "${assetCode}" already exists.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Unique serial number check
@@ -127,6 +152,8 @@ const getAssets = async (req, res) => {
         { model: { $regex: search, $options: "i" } },
         { serialNumber: { $regex: search, $options: "i" } },
         { licenseKey: { $regex: search, $options: "i" } },
+       { assetCode: { $regex: search, $options: "i" } } // ✅ اضافه شد
+
       ];
     }
 
@@ -157,11 +184,11 @@ const getAssets = async (req, res) => {
   }
 };
 
-const getAsset= async (req , res)=>{
+const getAsset = async (req, res) => {
 
-    const {assetId}= req.query 
+  const { assetId } = req.query
 
-    try {
+  try {
     const asset = await Assets.findById(assetId).populate("owner", "firstName lastName")
     if (!asset) return res.status(404).json({ success: false, message: "Asset not found" });
 
@@ -169,7 +196,7 @@ const getAsset= async (req , res)=>{
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
-} 
+}
 
 const updateAsset = async (req, res) => {
   try {
@@ -189,7 +216,7 @@ const updateAsset = async (req, res) => {
       });
     }
 
-    const { name, type, ownerType, owner, departmentScope, platforms, serialNumber } = formData;
+    const { name, type, ownerType, owner, departmentScope, platforms, serialNumber, assetCode } = formData;
 
     // === Required Field Validation ===
     if (!name || !type || !ownerType || !departmentScope?.length || !platforms?.length) {
@@ -202,7 +229,7 @@ const updateAsset = async (req, res) => {
 
     // === Enum Validation ===
     const validTypes = ["hardware", "software"];
-    const validOwnerTypes = ["bank", "user"];
+    const validOwnerTypes = ["bank", "user", "lab"];
     const validDepartments = ["security", "quality"];
     const validPlatforms = ["web", "mobile", "desktop", "api"];
 
@@ -241,6 +268,34 @@ const updateAsset = async (req, res) => {
         message: "Field 'owner' is required when ownerType is 'user'.",
       });
     }
+
+// === Conditional assetCode validation ===
+if ((ownerType === "bank" || ownerType === "lab") && !assetCode?.trim()) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Field 'assetCode' is required for bank or lab owned assets.",
+    },
+    { status: 400 }
+  );
+}
+
+// === Check for duplicate assetCode (ignore current asset) ===
+if (assetCode) {
+  const duplicateCode = await Assets.findOne({
+    assetCode,
+    _id: { $ne: assetId },
+  });
+  if (duplicateCode) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `Another asset with code "${assetCode}" already exists.`,
+      },
+      { status: 400 }
+    );
+  }
+}
 
     // === Ensure asset exists ===
     const existingAsset = await Assets.findById(assetId);
@@ -333,9 +388,9 @@ const deleteAsset = async (req, res) => {
 
 
 module.exports = {
-addAsset , 
-getAssets , 
-getAsset , 
-updateAsset, 
-deleteAsset
+  addAsset,
+  getAssets,
+  getAsset,
+  updateAsset,
+  deleteAsset
 }
