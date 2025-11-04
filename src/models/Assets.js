@@ -4,11 +4,27 @@ const assetSchema = new mongoose.Schema({
   // Asset name
   name: { type: String, required: true },
 
+  //asset code
+  assetCode: {
+  type: String,
+  trim: true,
+  unique: true,
+  sparse: true,
+  validate: {
+    validator: function (value) {
+      if (this.ownerType === "bank" || this.ownerType === "lab") {
+        return !!value; // must exist
+      }
+      return true; // user-owned can be empty
+    },
+    message: "Asset code is required for bank or lab-owned assets",
+  },
+},
   // Asset type: hardware or software
   type: { type: String, enum: ["hardware", "software"], required: true },
 
   // Ownership type: bank-owned or user-owned
-  ownerType: { type: String, enum: ["bank", "user"], required: true },
+  ownerType: { type: String, enum: ["bank","lab","user"], required: true },
 
   // Reference to the user (only if ownerType is "user")
   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -166,6 +182,8 @@ assetSchema.index({ tags: 1, status: 1 });
 
 // مثلاً: برای گزارش هزینه‌ها بر اساس نوع و دپارتمان
 assetSchema.index({ type: 1, departmentScope: 1, cost: -1 });
+
+assetSchema.index({ assetCode: 1 }, { unique: true });
 
 // 6️⃣ جستجوی متنی (برای سرچ کلی در اسم و توضیحات)
 assetSchema.index({
