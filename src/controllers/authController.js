@@ -53,29 +53,72 @@ const login = async (req, res) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const {
+      firstName,
+      lastName,
+      username,
+      password,
+      devOps,
+      security,
+      qualityAssurance
+    } = req.body;
 
-    // Validate inputs
-    if (!username || !password) {
-      return res.status(400).json({ message: 'Username and password are required.' });
+    // ✅ Validate inputs
+    if (!username || !password || !firstName || !lastName) {
+      return res.status(400).json({ message: 'تمام فیلدهای الزامی باید پر شوند.' });
     }
 
-    // Check if user already exists
+    // ✅ Check if username exists
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return res.status(409).json({ message: 'Username already taken.' });
+      return res.status(409).json({ message: 'نام کاربری قبلاً ثبت شده است.' });
     }
 
-    // Create and save user
-    const newUser = new User({ username, password });
+    // ✅ Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ✅ Handle uploaded profile image (from multer)
+    let profileImageUrl = '';
+    if (req.file) {
+      // Normalize the file path to be web-accessible
+      profileImageUrl = path.join('upload/users/profile', req.file.filename);
+    }
+
+    // ✅ Create new user
+    const newUser = new User({
+      firstName,
+      lastName,
+      username,
+      password: hashedPassword,
+      devOps: devOps === 'true' || devOps === true,
+      security: security === 'true' || security === true,
+      qualityAssurance: qualityAssurance === 'true' || qualityAssurance === true,
+      profileImageUrl,
+    });
+
+    // ✅ Save user
     await newUser.save();
 
-    res.status(201).json({ message: 'User registered successfully.' });
+    // ✅ Response
+    res.status(201).json({
+      message: 'ثبت‌نام با موفقیت انجام شد.',
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        devOps: newUser.devOps,
+        security: newUser.security,
+        qualityAssurance: newUser.qualityAssurance,
+        profileImageUrl: newUser.profileImageUrl,
+      },
+    });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration.' });
+    res.status(500).json({ message: 'خطا در ثبت‌نام کاربر.' });
   }
 };
+
 
 const logout = async (req , res )=>{
 
