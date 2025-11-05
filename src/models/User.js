@@ -30,10 +30,13 @@ const userSchema = new Schema({
     status:{type:String , default:"Active"}, 
     score:{type:Number , default:0} ,
     devOps:{type:Boolean , required:true  }, 
+    security:{type:Boolean , required:true  }, 
+    qualityAssurance:{type:Boolean , required:true } , 
     userProject: [{
         type: Schema.Types.ObjectId, 
         ref: 'ProjectUser'
     }],
+
     
 
 });
