@@ -131,7 +131,110 @@ const logout = async (req , res )=>{
 
 }
 
+const changePassword = async (req, res) => {
+  try {
+    console.log("req.body : " , req.body )
+
+    const { currentPassword, newPassword, confirmPassword , userId  } = req.body.formData ;
+    
+    console.log("curren : " ,currentPassword , "\n new pass : " , newPassword , "\n confirm : " ,confirmPassword , "\n userID : " , userId )
+    // اعتبارسنجی فیلدهای ورودی
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'تمام فیلدها الزامی هستند'
+      });
+    }
+
+    // بررسی طول رمز عبور جدید
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'رمز عبور جدید باید حداقل ۶ کاراکتر باشد'
+      });
+    }
+
+    // بررسی تطابق رمز عبور جدید و تکرار آن
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'رمز عبور جدید و تکرار آن مطابقت ندارند'
+      });
+    }
+
+    // بررسی اینکه رمز عبور جدید با رمز فعلی متفاوت باشد
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'رمز عبور جدید باید با رمز عبور فعلی متفاوت باشد'
+      });
+    }
+
+    // دریافت کاربر از طریق توکن (فرض می‌کنیم middleware احراز هویت کاربر را به req اضافه کرده)
+    // const userId = req.user.id;
+    
+    // پیدا کردن کاربر در دیتابیس
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'کاربر یافت نشد'
+      });
+    }
+
+    // بررسی رمز عبور فعلی
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'رمز عبور فعلی نادرست است'
+      });
+    }
+
+    // هش کردن رمز عبور جدید
+    const saltRounds = 12;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // بروزرسانی رمز عبور در دیتابیس
+    user.password = hashedNewPassword;
+    user.updatedAt = new Date();
+    
+    await user.save();
+
+    // پاسخ موفقیت‌آمیز
+    res.status(200).json({
+      success: true,
+      message: 'رمز عبور با موفقیت تغییر یافت'
+    });
+
+  } catch (error) {
+    console.error('Error in changePassword:', error);
+    
+    // مدیریت خطاهای خاص
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'داده‌های ارسالی نامعتبر هستند'
+      });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'شناسه کاربر نامعتبر است'
+      });
+    }
+
+    // خطای عمومی سرور
+    res.status(500).json({
+      success: false,
+      message: 'خطای سرور. لطفا بعدا تلاش کنید'
+    });
+  }
+};
+
 
 module.exports = {
-  login, registerUser , logout
+  login, registerUser , logout , changePassword
 };
