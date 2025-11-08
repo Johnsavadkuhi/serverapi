@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, registerUser , logout } = require('../controllers/authController');
+const { login, registerUser , logout , changePassword } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -53,5 +53,7 @@ router.post('/login', login);
 router.route("/register").post(userProfileUpload.array('profileImageUrl', 100) , registerUser)
 
 router.post("/logout" , logout )
+
+router.post("/change-password" , changePassword)
 
 module.exports = router;
