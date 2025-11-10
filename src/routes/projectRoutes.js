@@ -4,7 +4,7 @@ const { getUserProjects, getManagerProjects, createProject , getBugs , updateBug
     reportVerify , deleteReportById , fetchProjectByUserProjectManager ,
      updateProjectStatus , fetchUserProjectById , fetchAllUserReport , getAllBugsForReport , getPage , setPage ,postIdentifier
      , getPentesterByProjectId , 
-     getProjectById , updateReadAccess , getIdentifier , pocsArchive , saveProjectDates 
+     getProjectById , updateReadAccess , getIdentifier , pocsArchive , saveProjectDates  , createReport 
  } = require('../controllers/projectControllers');
 
 
@@ -95,5 +95,7 @@ router.get("/identifier" ,getIdentifier )
 router.get("/pocs-archive" , pocsArchive)
 
 router.post("/save/date" , saveProjectDates)
+
+router.get("/generateReport" , createReport )
 module.exports = router; 
  

@@ -1140,7 +1140,7 @@ function shouldIncludePoc(p) {
 const pocsArchive = async (req, res) => {
 
   const { projectId } = req.query
-  console.log("project id : ", projectId)
+
   if (!projectId) return res.status(400).json({ message: 'projectId is required' });
 
   try {
@@ -1294,7 +1294,57 @@ const saveProjectDates = async (req, res) => {
   }
 }
 
+const puppeteer = require("puppeteer");
 
+async function generateLongPdf(url, outputFile = "document.pdf") {
+  const browser = await puppeteer.launch({
+    headless: true,
+    defaultViewport: null,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  const page = await browser.newPage();
+
+  console.log("در حال باز کردن صفحه...");
+  await page.goto(url, {
+    waitUntil: "networkidle0", // منتظر میمونه تا همه درخواست‌ها انجام بشه
+  });
+
+  // در صورتی که داده‌ها با JS دیر لود میشن، کمی صبر کن
+// await page.waitFor(3000); // صبر به میلی‌ثانیه
+
+  console.log("در حال ساخت PDF...");
+
+  // ساخت PDF طولانی با صفحات خودکار
+  await page.pdf({
+    path: path.resolve(outputFile),
+    format: "A4",
+    printBackground: true, // بک‌گراند CSS رو هم میاره
+    margin: { top: "20px", bottom: "20px", left: "20px", right: "20px" },
+  });
+
+  await browser.close();
+  console.log(`PDF ساخته شد: ${outputFile}`);
+}
+
+// استفاده
+// (async () => {
+//   const pageUrl = "http://localhost:3000/pdf-page"; // URL صفحه React شما
+//   await generateLongPdf(pageUrl, "report.pdf");
+// })();
+
+const createReport = async (req, res )=> {
+  
+  const {url} = req.query 
+
+  console.log("url ############:  " , url )
+
+  await generateLongPdf(url , "report.pdf")
+  res.status(200).json(1)
+
+
+
+}
 
 
 module.exports = {
@@ -1324,6 +1374,7 @@ module.exports = {
   getProjectById,
   updateReadAccess, getIdentifier,
   pocsArchive,
-  saveProjectDates
+  saveProjectDates , 
+  createReport 
 
 };
