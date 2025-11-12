@@ -1296,50 +1296,84 @@ const saveProjectDates = async (req, res) => {
 
 const puppeteer = require("puppeteer");
 
-async function generateLongPdf(url, outputFile = "document.pdf") {
+async function generateLongPdf(url, outputFile = "document" , cookies ) {
+ 
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-  const page = await browser.newPage();
+   const context = await browser.createBrowserContext()
 
-  console.log("در حال باز کردن صفحه...");
+  // const page = await browser.newPage();
+    const page = await context.newPage();
+    // await context.setCookie(cookies)
+const cookiesHeader = "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzI4YjQ5ZjA2NzQzMTBiMjhiODI4MDAiLCJ1c2VybmFtZSI6Im1laXNhbXJjZSIsImlhdCI6MTc2MjkyNjgwNCwiZXhwIjoxNzYzMDEzMjA0fQ.4CXsHJxJVwXrqsz68EdfcbPTIYVt31jVqq59IBSjL7I" ; 
+
+
+
+// const cookiesHeader = await cookies[0]?.value
+console.log("cookies token ************************************************* : " , cookiesHeader )
+await page.setExtraHTTPHeaders({
+  'Cookie':cookiesHeader
+})
+
   await page.goto(url, {
     waitUntil: "networkidle0", // منتظر میمونه تا همه درخواست‌ها انجام بشه
   });
 
-  // در صورتی که داده‌ها با JS دیر لود میشن، کمی صبر کن
-// await page.waitFor(3000); // صبر به میلی‌ثانیه
 
-  console.log("در حال ساخت PDF...");
-
-  // ساخت PDF طولانی با صفحات خودکار
-  await page.pdf({
-    path: path.resolve(outputFile),
-    format: "A4",
-    printBackground: true, // بک‌گراند CSS رو هم میاره
-    margin: { top: "20px", bottom: "20px", left: "20px", right: "20px" },
+await page.evaluate(() => {
+  return new Promise(resolve => {
+    window.scrollTo(0, document.body.scrollHeight);
+    setTimeout(resolve, 1000); // 1 ثانیه صبر
   });
+});
+
+//  await page.emulateMediaType('print');
+
+
+
+// 4️⃣ گرفتن PDF
+await page.pdf({
+  path: `${outputFile}.pdf`,
+  format: 'A4',
+  printBackground: true,
+  preferCSSPageSize: true,
+ 
+});
 
   await browser.close();
   console.log(`PDF ساخته شد: ${outputFile}`);
 }
 
-// استفاده
-// (async () => {
-//   const pageUrl = "http://localhost:3000/pdf-page"; // URL صفحه React شما
-//   await generateLongPdf(pageUrl, "report.pdf");
-// })();
-
 const createReport = async (req, res )=> {
   
-  const {url} = req.query 
+  const {url , projectId } = req.query 
+    const cookies = req.headers.cookie; // مثلا: "session_id=abc123; token=xyz456"
 
-  console.log("url ############:  " , url )
+  const parsedCookies = cookies.split(";")
+  .map(c => c.trim())
+  .map(c => {
+    const [name, ...rest] = c.split("=");
+    const value = rest.join("=");
 
-  await generateLongPdf(url , "report.pdf")
+    return {
+      name,
+      value,
+      domain: 'localhost',  // فقط hostname
+      path: '/',
+      httpOnly: true,       // اگر هدر کوکی HttpOnly هست
+      secure: false,        // چون localhost HTTP هست
+      sameSite: 'Lax'       // امن و استاندارد
+    };
+  })
+  .filter(c => c.name && c.value);
+
+    console.log("parsed cookies : " , parsedCookies)
+
+  await generateLongPdf(url , projectId , parsedCookies)
   res.status(200).json(1)
 
 
