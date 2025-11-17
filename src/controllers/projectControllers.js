@@ -1296,57 +1296,113 @@ const saveProjectDates = async (req, res) => {
 
 const puppeteer = require("puppeteer");
 
-async function generateLongPdf(url, outputFile = "document" , cookies ) {
+// async function generateLongPdf(url, outputFile = "document" , cookies ) {
  
+//   const browser = await puppeteer.launch({
+//     headless: true,
+//     defaultViewport: null,
+//     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+//   });
+
+//    const context = await browser.createBrowserContext()
+
+//   // const page = await browser.newPage();
+//     const page = await context.newPage();
+//     // await context.setCookie(cookies)
+// // const cookiesHeader = "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzI4YjQ5ZjA2NzQzMTBiMjhiODI4MDAiLCJ1c2VybmFtZSI6Im1laXNhbXJjZSIsImlhdCI6MTc2MzM1ODI5NiwiZXhwIjoxNzYzNDQ0Njk2fQ.prXuiYbyLa7d4dtRCv08yhggc0_PAluRidBQFHHCVeQ" ; 
+
+
+
+// // const cookiesHeader = await cookies[0]?.value
+// const cookiesHeader = `token=${cookies[0]?.value}`
+// console.log("cookies token ************************************************* : " , cookies[0].value  )
+// await page.setExtraHTTPHeaders({
+//   'cookie':cookiesHeader
+// })
+
+//   await page.goto(url, {
+//     waitUntil: "networkidle0", // منتظر میمونه تا همه درخواست‌ها انجام بشه
+//   });
+
+
+// await page.evaluate(() => {
+//   return new Promise(resolve => {
+//     window.scrollTo(0, document.body.scrollHeight);
+//     setTimeout(resolve, 1000); // 1 ثانیه صبر
+//   });
+// });
+
+// //  await page.emulateMediaType('print');
+
+
+
+// // 4️⃣ گرفتن PDF
+// await page.pdf({
+//   path: `${outputFile}.pdf`,
+//   format: 'A4',
+//   printBackground: true,
+//   preferCSSPageSize: true,
+ 
+// });
+
+//   await browser.close();
+//   console.log(`PDF ساخته شد: ${outputFile}`);
+// }
+
+
+async function generateLongPdf(url, outputFile = "report", cookies) {
   const browser = await puppeteer.launch({
     headless: true,
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-   const context = await browser.createBrowserContext()
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
 
-  // const page = await browser.newPage();
-    const page = await context.newPage();
-    // await context.setCookie(cookies)
-const cookiesHeader = "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzI4YjQ5ZjA2NzQzMTBiMjhiODI4MDAiLCJ1c2VybmFtZSI6Im1laXNhbXJjZSIsImlhdCI6MTc2MjkyNjgwNCwiZXhwIjoxNzYzMDEzMjA0fQ.4CXsHJxJVwXrqsz68EdfcbPTIYVt31jVqq59IBSjL7I" ; 
+  const token = cookies[0]?.value;
+  if (!token) throw new Error("Missing cookie value");
 
+  const cookiesHeader = `token=${token}`;
+  await page.setExtraHTTPHeaders({ cookie: cookiesHeader });
 
+  // 🔥 Extract the last part of the URL as ID
+  const urlParts = url.split("/").filter(Boolean); // removes empty parts
+  const urlId = urlParts[urlParts.length - 1];     // last segment
+  console.log("URL ID:", urlId);
 
-// const cookiesHeader = await cookies[0]?.value
-console.log("cookies token ************************************************* : " , cookiesHeader )
-await page.setExtraHTTPHeaders({
-  'Cookie':cookiesHeader
-})
+  // 🔥 Ensure the directory exists: /upload/reports/{urlId}/
+  const baseDir = path.join(process.cwd(), "upload", "reports", urlId);
+  fs.mkdirSync(baseDir, { recursive: true });
 
-  await page.goto(url, {
-    waitUntil: "networkidle0", // منتظر میمونه تا همه درخواست‌ها انجام بشه
+  // The final PDF path
+  const pdfPath = path.join(baseDir, `${outputFile}.pdf`);
+
+  await page.goto(url, { waitUntil: "networkidle0" });
+
+  await page.evaluate(() => {
+    return new Promise(resolve => {
+      window.scrollTo(0, document.body.scrollHeight);
+      setTimeout(resolve, 1000);
+    });
   });
 
-
-await page.evaluate(() => {
-  return new Promise(resolve => {
-    window.scrollTo(0, document.body.scrollHeight);
-    setTimeout(resolve, 1000); // 1 ثانیه صبر
+  await page.pdf({
+    path: pdfPath,
+    format: "A4",
+    printBackground: true,
+    preferCSSPageSize: true,
   });
-});
-
-//  await page.emulateMediaType('print');
-
-
-
-// 4️⃣ گرفتن PDF
-await page.pdf({
-  path: `${outputFile}.pdf`,
-  format: 'A4',
-  printBackground: true,
-  preferCSSPageSize: true,
- 
-});
 
   await browser.close();
-  console.log(`PDF ساخته شد: ${outputFile}`);
+  console.log(`PDF saved at: ${pdfPath}`);
+
+  // 🔥 Return the generated file path
+  return pdfPath;
 }
+
+
+
 
 const createReport = async (req, res )=> {
   
@@ -1373,8 +1429,10 @@ const createReport = async (req, res )=> {
 
     console.log("parsed cookies : " , parsedCookies)
 
-  await generateLongPdf(url , projectId , parsedCookies)
-  res.status(200).json(1)
+ const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
+
+ console.log("pdfPath in line 1434 : " , pdfPath )
+  res.download(pdfPath, `${projectId}.pdf`);
 
 
 
