@@ -1353,6 +1353,7 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", cookies) {
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: "/snap/bin/chromium", 
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
