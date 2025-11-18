@@ -1488,7 +1488,7 @@ const createReport = async (req, res) => {
 
     const archive = archiver('zip-encryptable', {
       zlib: { level: 9 },
-      password: proj?.reportPassword 
+      password: proj?.reportPassword || "123456"
     });
 
     output.on('close', () => {
