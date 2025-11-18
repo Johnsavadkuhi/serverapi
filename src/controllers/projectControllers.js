@@ -1350,7 +1350,7 @@ const puppeteer = require("puppeteer");
 // }
 
 
-async function generateLongPdf(url, outputFile = "report", cookies) {
+async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
     executablePath: "/usr/bin/google-chrome", 
@@ -1361,7 +1361,7 @@ async function generateLongPdf(url, outputFile = "report", cookies) {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
 
-  const token = cookies[0]?.value;
+  const token = parsedCookies[0]?.value;
   console.log("token in line 1465 ###################################################################### : " , token )
   if (!token) throw new Error("Missing cookie value");
 
@@ -1432,11 +1432,11 @@ const createReport = async (req, res )=> {
 
     console.log("parsed cookies 00000000000000000000000000000000000000000000000000000000  : " , parsedCookies)
 
-//  const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
+  const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
 
  console.log("pdfPath in line 1434 : " , pdfPath )
- 
-  // res.download(pdfPath, `${projectId}.pdf`);
+
+  res.download(pdfPath, `${projectId}.pdf`);
 
 
 
