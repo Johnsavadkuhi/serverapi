@@ -1359,7 +1359,7 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
-    // executablePath: "/usr/bin/google-chrome", 
+    executablePath: "/usr/bin/google-chrome", 
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-gpu', '--disable-dev-shm-usage'],
   });
