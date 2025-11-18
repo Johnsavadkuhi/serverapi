@@ -1411,6 +1411,7 @@ const createReport = async (req, res )=> {
   const {url , projectId } = req.query 
     const cookies = req.headers.cookie; // مثلا: "session_id=abc123; token=xyz456"
 
+    console.log("cookies in line 1414 #####*********************************************** : " , cookies )
   const parsedCookies = cookies.split(";")
   .map(c => c.trim())
   .map(c => {
@@ -1429,12 +1430,13 @@ const createReport = async (req, res )=> {
   })
   .filter(c => c.name && c.value);
 
-    console.log("parsed cookies : " , parsedCookies)
+    console.log("parsed cookies 00000000000000000000000000000000000000000000000000000000  : " , parsedCookies)
 
- const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
+//  const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
 
  console.log("pdfPath in line 1434 : " , pdfPath )
-  res.download(pdfPath, `${projectId}.pdf`);
+ 
+  // res.download(pdfPath, `${projectId}.pdf`);
 
 
 
