@@ -11,7 +11,6 @@ const fsp = require('fs/promises');
 const os = require('os');
 const { spawnSync, spawn } = require('child_process');
 const archiver = require('archiver');
-const AdmZip = require("adm-zip");
 
 const getUserProjects = async (req, res) => {
   const userId = req.query.userId;
@@ -252,13 +251,13 @@ const creatReport = async (req, res) => {
       cvssScore,
       cvssVector,
       cvssSeverity,
-      httpMethod, 
-      parameter , 
+      httpMethod,
+      parameter,
       _id,
     } = req.body;
 
 
- 
+
 
     // Check for duplicates (optional)
     const existing = await FoundedBug.findOne({ _id });
@@ -287,8 +286,8 @@ const creatReport = async (req, res) => {
       other_information: "",
       pocs,
       path,
-      httpMethod, 
-      parameter, 
+      httpMethod,
+      parameter,
       solutions: solution,
       exploits: exploit,
       tools: Array.isArray(tools) ? tools : tools ? [tools] : [], // Ensure it's an array
@@ -302,7 +301,7 @@ const creatReport = async (req, res) => {
       securingByWAF: wafPossibility,
       refrence,
       cvssVector,
-      
+
     });
 
     await newBug.save();
@@ -349,8 +348,8 @@ const updateReport = async (req, res) => {
       cvssVector,
       cvssSeverity,
       existingFiles, // Array of existing file IDs to keep
-      httpMethod, 
-      parameter, 
+      httpMethod,
+      parameter,
       _id, // ID of the report to update
     } = req.body;
 
@@ -401,9 +400,9 @@ const updateReport = async (req, res) => {
     existingReport.CVE = cve;
     existingReport.impact = impact;
     existingReport.path = reportPath;
-    existingReport.httpMethod = httpMethod , 
-    existingReport.parameter = parameter, 
-    (existingReport.description = description),
+    existingReport.httpMethod = httpMethod,
+      existingReport.parameter = parameter,
+      (existingReport.description = description),
       (existingReport.solutions = solution);
     existingReport.exploits = exploit;
     existingReport.tools = Array.isArray(tools)
@@ -1304,7 +1303,7 @@ const saveProjectDates = async (req, res) => {
 const puppeteer = require("puppeteer");
 
 // async function generateLongPdf(url, outputFile = "document" , cookies ) {
- 
+
 //   const browser = await puppeteer.launch({
 //     headless: true,
 //     defaultViewport: null,
@@ -1349,7 +1348,7 @@ const puppeteer = require("puppeteer");
 //   format: 'A4',
 //   printBackground: true,
 //   preferCSSPageSize: true,
- 
+
 // });
 
 //   await browser.close();
@@ -1360,16 +1359,16 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
-    // executablePath: "/usr/bin/google-chrome", 
+    executablePath: "/usr/bin/google-chrome", 
     defaultViewport: null,
-    args: ["--no-sandbox", "--disable-setuid-sandbox" , '--disable-gpu', '--disable-dev-shm-usage'],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-gpu', '--disable-dev-shm-usage'],
   });
 
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
 
   const token = parsedCookies[0]?.value;
-  console.log("token in line 1465 ###################################################################### : " , token )
+  console.log("token in line 1465 ###################################################################### : ", token)
   if (!token) throw new Error("Missing cookie value");
 
   const cookiesHeader = `token=${token}`;
@@ -1413,68 +1412,125 @@ async function generateLongPdf(url, outputFile = "report", parsedCookies) {
 
 archiver.registerFormat('zip-encryptable', require('archiver-zip-encryptable'));
 
-const createReport = async (req, res )=> {
-  
-  const {url , projectId } = req.query 
+const createReport = async (req, res) => {
+
+  const { url, projectId } = req.query
+  if (!projectId) return res.status(400).json({ message: 'projectId is required' });
+
+  try {
+    const bugs = await FoundedBug.find({ project: projectId, state: "Verify" })
+      .select('project label id pocs state')
+      .lean();
+
+      const proj  = await project.findById(projectId)
+      console.log("proj password: " , proj?.reportPassword)
+
+
+    const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
+    const files = [];
+
+    for (const bug of bugs) {
+      if (!Array.isArray(bug.pocs)) continue;
+      for (const p of bug.pocs) {
+        if (!shouldIncludePoc(p)) continue;
+        const resolved = resolvePocPath(p, bug, projectRoot);
+        if (!resolved) continue;
+        const { abs, rel } = resolved;
+        try {
+          const stat = fs.statSync(abs);
+          if (stat.isFile()) files.push({ abs, rel });
+        } catch { }
+      }
+    }
+
+
+    if (files.length === 0) {
+      return res.status(404).json({ message: 'No eligible POC files found for verified bugs.' });
+    }
+
+    await fsp.mkdir(projectRoot, { recursive: true });
+
+
+
+    // ---------- 2. ایجاد فایل PDF گزارش ----------
+
     const cookies = req.headers.cookie; // مثلا: "session_id=abc123; token=xyz456"
 
-    console.log("cookies in line 1414 #####*********************************************** : " , cookies )
-  const parsedCookies = cookies.split(";")
-  .map(c => c.trim())
-  .map(c => {
-    const [name, ...rest] = c.split("=");
-    const value = rest.join("=");
+    console.log("cookies in line 1414 #####*********************************************** : ", cookies)
+    const parsedCookies = cookies.split(";")
+      .map(c => c.trim())
+      .map(c => {
+        const [name, ...rest] = c.split("=");
+        const value = rest.join("=");
 
-    return {
-      name,
-      value,
-      domain: 'localhost',  // فقط hostname
-      path: '/',
-      httpOnly: true,       // اگر هدر کوکی HttpOnly هست
-      secure: false,        // چون localhost HTTP هست
-      sameSite: 'Strict'       // امن و استاندارد
-    };
-  })
-  .filter(c => c.name && c.value);
+        return {
+          name,
+          value,
+          domain: 'localhost',  // فقط hostname
+          path: '/',
+          httpOnly: true,       // اگر هدر کوکی HttpOnly هست
+          secure: false,        // چون localhost HTTP هست
+          sameSite: 'Strict'       // امن و استاندارد
+        };
+      })
+      .filter(c => c.name && c.value);
 
 
-  const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
+    const pdfPath = await generateLongPdf(url, projectId, parsedCookies)
 
- console.log("pdfPath in line 1434 : " , pdfPath )
+    console.log("pdfPath in line 1434 : ", pdfPath)
 
-  const zipPath = path.join(path.dirname(pdfPath), `${projectId}.zip`);
-  // Create ZIP with password
-  const output = fs.createWriteStream(zipPath);
-  const archive = archiver('zip-encryptable', {
-    zlib: { level: 9 },
-    password: '123456' // <--- set your password here
-  });
 
-   output.on('close', () => {
-    console.log(`ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
+    const zipName = `${projectId}-report.zip`;
 
-    // Send ZIP file for download
-    res.download(zipPath, `${projectId}.zip`, err => {
-      if (err) {
-        console.error("Download error:", err);
-        res.status(500).send("Error downloading file");
-      }
+    const zipPath = path.join(os.tmpdir(), zipName);
+    const output = fs.createWriteStream(zipPath);
 
-      // Optional: delete temp files after download
-      // fs.unlink(pdfPath, () => {});
-      // fs.unlink(zipPath, () => {});
+    const archive = archiver('zip-encryptable', {
+      zlib: { level: 9 },
+      password: proj?.reportPassword 
     });
-  });
 
-  archive.on('error', err => {
-    throw err;
-  });
+    output.on('close', () => {
+      console.log(`ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
 
-  // res.download(pdfPath, `${projectId}.pdf`);
+      // ارسال ZIP برای دانلود
+      res.download(zipPath, zipName, async err => {
+        if (err) {
+          console.error("Download error:", err);
+          res.status(500).send("Error downloading file");
+        }
+        // حذف فایل‌های موقت
+        try { await fsp.unlink(pdfPath); } catch { }
+        try { await fsp.unlink(zipPath); } catch { }
+      });
+    });
 
- archive.pipe(output);
-  archive.file(pdfPath, { name: `${projectId}.pdf` });
-  archive.finalize();
+    archive.on('error', err => {
+      throw err;
+    });
+
+    // res.download(pdfPath, `${projectId}.pdf`);
+
+    archive.pipe(output);
+    archive.file(pdfPath, { name: `${projectId}.pdf` });
+
+    // اضافه کردن تمام فایل‌های POC به ZIP
+    for (const f of files) {
+      archive.file(f.abs, { name: f.rel });
+    }
+
+    await archive.finalize();
+
+  } catch (err) {
+    console.error('createReport error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: err.message || 'Internal server error' });
+    } else {
+      res.end();
+    }
+  }
+
 
 }
 
@@ -1506,7 +1562,7 @@ module.exports = {
   getProjectById,
   updateReadAccess, getIdentifier,
   pocsArchive,
-  saveProjectDates , 
-  createReport 
+  saveProjectDates,
+  createReport
 
 };
