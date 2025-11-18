@@ -11,6 +11,7 @@ const fsp = require('fs/promises');
 const os = require('os');
 const { spawnSync, spawn } = require('child_process');
 const archiver = require('archiver');
+const AdmZip = require("adm-zip");
 
 const getUserProjects = async (req, res) => {
   const userId = req.query.userId;
@@ -1096,7 +1097,11 @@ const getIdentifier = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+
 const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'upload');
+
 function rarAvailable() {
   try {
     const out = spawnSync('rar', ['-v'], { encoding: 'utf8' });
@@ -1111,6 +1116,7 @@ function nowStamp() {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
+
 /** Safely resolve absolute path + relative path (to projectRoot) for a POC. */
 function resolvePocPath(poc, bug, projectRoot) {
   let raw = poc?.path;
@@ -1128,6 +1134,7 @@ function resolvePocPath(poc, bug, projectRoot) {
 
   return { abs, rel: relToProject };
 }
+
 /** Decide if a POC should be included per your rules. */
 function shouldIncludePoc(p) {
   const hasIncluded = Object.prototype.hasOwnProperty.call(p, 'included');
@@ -1353,7 +1360,7 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: "/usr/bin/google-chrome", 
+    // executablePath: "/usr/bin/google-chrome", 
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox" , '--disable-gpu', '--disable-dev-shm-usage'],
   });
@@ -1404,7 +1411,7 @@ async function generateLongPdf(url, outputFile = "report", parsedCookies) {
 }
 
 
-
+archiver.registerFormat('zip-encryptable', require('archiver-zip-encryptable'));
 
 const createReport = async (req, res )=> {
   
@@ -1430,15 +1437,44 @@ const createReport = async (req, res )=> {
   })
   .filter(c => c.name && c.value);
 
-    console.log("parsed cookies 00000000000000000000000000000000000000000000000000000000  : " , parsedCookies)
 
   const pdfPath =  await generateLongPdf(url , projectId , parsedCookies)
 
  console.log("pdfPath in line 1434 : " , pdfPath )
 
-  res.download(pdfPath, `${projectId}.pdf`);
+  const zipPath = path.join(path.dirname(pdfPath), `${projectId}.zip`);
+  // Create ZIP with password
+  const output = fs.createWriteStream(zipPath);
+  const archive = archiver('zip-encryptable', {
+    zlib: { level: 9 },
+    password: '123456' // <--- set your password here
+  });
 
+   output.on('close', () => {
+    console.log(`ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
 
+    // Send ZIP file for download
+    res.download(zipPath, `${projectId}.zip`, err => {
+      if (err) {
+        console.error("Download error:", err);
+        res.status(500).send("Error downloading file");
+      }
+
+      // Optional: delete temp files after download
+      // fs.unlink(pdfPath, () => {});
+      // fs.unlink(zipPath, () => {});
+    });
+  });
+
+  archive.on('error', err => {
+    throw err;
+  });
+
+  // res.download(pdfPath, `${projectId}.pdf`);
+
+ archive.pipe(output);
+  archive.file(pdfPath, { name: `${projectId}.pdf` });
+  archive.finalize();
 
 }
 
