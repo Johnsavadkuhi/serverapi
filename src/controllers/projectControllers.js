@@ -1359,7 +1359,7 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: "/usr/bin/google-chrome", 
+    // executablePath: "/usr/bin/google-chrome", 
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-gpu', '--disable-dev-shm-usage'],
   });
@@ -1423,7 +1423,7 @@ const createReport = async (req, res) => {
       .lean();
 
       const proj  = await project.findById(projectId)
-      console.log("proj password: " , proj?.reportPassword)
+      console.log("proj password: " , proj)
 
 
     const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
@@ -1488,7 +1488,9 @@ const createReport = async (req, res) => {
 
     const archive = archiver('zip-encryptable', {
       zlib: { level: 9 },
-      password: proj?.reportPassword || "123456"
+        encryptionMethod: 'aes256',
+      password: proj?.reportPassword || "123456" ,
+      encryptFileNames: true
     });
 
     output.on('close', () => {
