@@ -1412,37 +1412,176 @@ async function generateLongPdf(url, outputFile = "report", parsedCookies) {
 
 archiver.registerFormat('zip-encryptable', require('archiver-zip-encryptable'));
 
-const createReport = async (req, res) => {
+// const createReport = async (req, res) => {
 
-  const { url, projectId } = req.query
+//   const { url, projectId } = req.query
+//   if (!projectId) return res.status(400).json({ message: 'projectId is required' });
+
+
+//     // Handle aborted request early
+//   let requestAborted = false;
+//   req.on("aborted", () => {
+//     console.warn("Client aborted request during report generation");
+//     requestAborted = true;
+//   });
+
+
+//   try {
+//     const bugs = await FoundedBug.find({ project: projectId, state: "Verify" })
+//       .select('project label id pocs state')
+//       .lean();
+
+//       const proj  = await project.findById(projectId)
+//       console.log("proj password: " , proj)
+
+
+//     const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
+//     const files = [];
+
+//     for (const bug of bugs) {
+//       if (!Array.isArray(bug.pocs)) continue;
+//       for (const p of bug.pocs) {
+//         if (!shouldIncludePoc(p)) continue;
+//         const resolved = resolvePocPath(p, bug, projectRoot);
+//         if (!resolved) continue;
+//         const { abs, rel } = resolved;
+//         try {
+//           const stat = fs.statSync(abs);
+//           if (stat.isFile()) files.push({ abs, rel });
+//         } catch { }
+//       }
+//     }
+
+
+//     if (files.length === 0) {
+//       return res.status(404).json({ message: 'No eligible POC files found for verified bugs.' });
+//     }
+
+//     await fsp.mkdir(projectRoot, { recursive: true });
+
+
+
+//     // ---------- 2. ایجاد فایل PDF گزارش ----------
+
+//     const cookies = req.headers.cookie; // مثلا: "session_id=abc123; token=xyz456"
+
+//     console.log("cookies in line 1414 #####*********************************************** : ", cookies)
+//     const parsedCookies = cookies.split(";")
+//       .map(c => c.trim())
+//       .map(c => {
+//         const [name, ...rest] = c.split("=");
+//         const value = rest.join("=");
+
+//         return {
+//           name,
+//           value,
+//           domain: 'localhost',  // فقط hostname
+//           path: '/',
+//           httpOnly: true,       // اگر هدر کوکی HttpOnly هست
+//           secure: false,        // چون localhost HTTP هست
+//           sameSite: 'Strict'       // امن و استاندارد
+//         };
+//       })
+//       .filter(c => c.name && c.value);
+
+
+//     const pdfPath = await generateLongPdf(url, projectId, parsedCookies)
+
+//     console.log("pdfPath in line 1434 : ", pdfPath)
+
+
+//     const zipName = `${projectId}-report.zip`;
+
+//     const zipPath = path.join(os.tmpdir(), zipName);
+//     const output = fs.createWriteStream(zipPath);
+
+//     const archive = archiver('zip-encryptable', {
+//       zlib: { level: 9 },
+//         encryptionMethod: 'aes256',
+//       password: proj?.reportPassword || "123456" ,
+//       encryptFileNames: true
+//     });
+
+//     output.on('close', () => {
+//       console.log(`ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
+
+//       // ارسال ZIP برای دانلود
+//       res.download(zipPath, zipName, async err => {
+//         if (err) {
+//           console.error("Download error:", err);
+//           res.status(500).send("Error downloading file");
+//         }
+//         // حذف فایل‌های موقت
+//         try { await fsp.unlink(pdfPath); } catch { }
+//         try { await fsp.unlink(zipPath); } catch { }
+//       });
+//     });
+
+//     archive.on('error', err => {
+//       throw err;
+//     });
+
+//     // res.download(pdfPath, `${projectId}.pdf`);
+
+//     archive.pipe(output);
+//     archive.file(pdfPath, { name: `${projectId}.pdf` });
+
+//     // اضافه کردن تمام فایل‌های POC به ZIP
+//     for (const f of files) {
+//       archive.file(f.abs, { name: f.rel });
+//     }
+
+//     await archive.finalize();
+
+//   } catch (err) {
+//     console.error('createReport error:', err);
+//     if (!res.headersSent) {
+//       res.status(500).json({ message: err.message || 'Internal server error' });
+//     } else {
+//       res.end();
+//     }
+//   }
+
+
+// }
+
+const createReport = async (req, res) => {
+  const { url, projectId } = req.query;
   if (!projectId) return res.status(400).json({ message: 'projectId is required' });
+
+  // Handle aborted request early
+  let requestAborted = false;
+  req.on("aborted", () => {
+    console.warn("Client aborted request during report generation");
+    requestAborted = true;
+  });
 
   try {
     const bugs = await FoundedBug.find({ project: projectId, state: "Verify" })
       .select('project label id pocs state')
       .lean();
 
-      const proj  = await project.findById(projectId)
-      console.log("proj password: " , proj)
-
+    const proj = await project.findById(projectId);
 
     const projectRoot = path.join(UPLOAD_ROOT, String(projectId));
     const files = [];
 
     for (const bug of bugs) {
       if (!Array.isArray(bug.pocs)) continue;
+
       for (const p of bug.pocs) {
         if (!shouldIncludePoc(p)) continue;
+
         const resolved = resolvePocPath(p, bug, projectRoot);
         if (!resolved) continue;
         const { abs, rel } = resolved;
+
         try {
           const stat = fs.statSync(abs);
           if (stat.isFile()) files.push({ abs, rel });
-        } catch { }
+        } catch {}
       }
     }
-
 
     if (files.length === 0) {
       return res.status(404).json({ message: 'No eligible POC files found for verified bugs.' });
@@ -1450,91 +1589,99 @@ const createReport = async (req, res) => {
 
     await fsp.mkdir(projectRoot, { recursive: true });
 
-
-
-    // ---------- 2. ایجاد فایل PDF گزارش ----------
-
-    const cookies = req.headers.cookie; // مثلا: "session_id=abc123; token=xyz456"
-
-    console.log("cookies in line 1414 #####*********************************************** : ", cookies)
+    // Parse cookies
+    const cookies = req.headers.cookie || "";
     const parsedCookies = cookies.split(";")
       .map(c => c.trim())
+      .filter(c => c.includes("="))
       .map(c => {
         const [name, ...rest] = c.split("=");
-        const value = rest.join("=");
-
         return {
           name,
-          value,
-          domain: 'localhost',  // فقط hostname
-          path: '/',
-          httpOnly: true,       // اگر هدر کوکی HttpOnly هست
-          secure: false,        // چون localhost HTTP هست
-          sameSite: 'Strict'       // امن و استاندارد
+          value: rest.join("="),
+          domain: "localhost",
+          path: "/",
+          httpOnly: true,
+          secure: false,
+          sameSite: "Strict"
         };
-      })
-      .filter(c => c.name && c.value);
+      });
 
-
-    const pdfPath = await generateLongPdf(url, projectId, parsedCookies)
-
-    console.log("pdfPath in line 1434 : ", pdfPath)
-
+    // Generate PDF
+    const pdfPath = await generateLongPdf(url, projectId, parsedCookies);
 
     const zipName = `${projectId}-report.zip`;
-
     const zipPath = path.join(os.tmpdir(), zipName);
+
     const output = fs.createWriteStream(zipPath);
 
     const archive = archiver('zip-encryptable', {
       zlib: { level: 9 },
-        encryptionMethod: 'aes256',
-      password: proj?.reportPassword || "123456" ,
+      encryptionMethod: 'aes256',
+      password: proj?.reportPassword || "123456",
       encryptFileNames: true
-    });
-
-    output.on('close', () => {
-      console.log(`ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
-
-      // ارسال ZIP برای دانلود
-      res.download(zipPath, zipName, async err => {
-        if (err) {
-          console.error("Download error:", err);
-          res.status(500).send("Error downloading file");
-        }
-        // حذف فایل‌های موقت
-        try { await fsp.unlink(pdfPath); } catch { }
-        try { await fsp.unlink(zipPath); } catch { }
-      });
     });
 
     archive.on('error', err => {
       throw err;
     });
 
-    // res.download(pdfPath, `${projectId}.pdf`);
-
+    // Begin streaming ZIP
     archive.pipe(output);
+
+    // Add PDF
     archive.file(pdfPath, { name: `${projectId}.pdf` });
 
-    // اضافه کردن تمام فایل‌های POC به ZIP
+    // Add POC files
     for (const f of files) {
       archive.file(f.abs, { name: f.rel });
     }
 
+    // Finalize
     await archive.finalize();
 
+    output.on('close', () => {
+      if (requestAborted) {
+        console.warn("Client disconnected before download started");
+        // Cleanup
+        fsp.unlink(pdfPath).catch(() => {});
+        fsp.unlink(zipPath).catch(() => {});
+        return;
+      }
+
+      // Safe download handler
+      res.download(zipPath, zipName, async err => {
+        if (err) {
+          console.error("Download error:", err);
+
+          if (!res.headersSent) {
+            res.status(500).json({ message: "Error downloading file" });
+          }
+
+          // Cleanup
+          try { await fsp.unlink(pdfPath); } catch {}
+          try { await fsp.unlink(zipPath); } catch {}
+          return;
+        }
+
+        // Download success — cleanup
+        try { await fsp.unlink(pdfPath); } catch {}
+        try { await fsp.unlink(zipPath); } catch {}
+      });
+    });
+
   } catch (err) {
-    console.error('createReport error:', err);
+    console.error("createReport error:", err);
+
     if (!res.headersSent) {
-      res.status(500).json({ message: err.message || 'Internal server error' });
-    } else {
-      res.end();
+      res.status(500).json({ message: err.message || "Internal server error" });
     }
+
+    res.end();
   }
+};
 
 
-}
 
 
 module.exports = {
