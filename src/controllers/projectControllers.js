@@ -1423,7 +1423,7 @@ const createReport = async (req, res )=> {
       path: '/',
       httpOnly: true,       // اگر هدر کوکی HttpOnly هست
       secure: false,        // چون localhost HTTP هست
-      sameSite: 'Lax'       // امن و استاندارد
+      sameSite: 'Strict'       // امن و استاندارد
     };
   })
   .filter(c => c.name && c.value);
