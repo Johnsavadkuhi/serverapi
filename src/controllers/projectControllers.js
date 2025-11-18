@@ -1355,7 +1355,7 @@ async function generateLongPdf(url, outputFile = "report", cookies) {
     headless: true,
     executablePath: "/snap/bin/chromium", 
     defaultViewport: null,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox" , '--disable-gpu', '--disable-dev-shm-usage'],
   });
 
   const context = await browser.createBrowserContext();
