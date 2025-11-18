@@ -1362,6 +1362,7 @@ async function generateLongPdf(url, outputFile = "report", cookies) {
   const page = await context.newPage();
 
   const token = cookies[0]?.value;
+  console.log("token in line 1465 ###################################################################### : " , token )
   if (!token) throw new Error("Missing cookie value");
 
   const cookiesHeader = `token=${token}`;
