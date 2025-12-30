@@ -843,12 +843,22 @@ const fetchUserProjectById = async (req, res) => {
 const fetchAllUserReport = async (req, res) => {
   const { projectId, userId } = req.query;
 
-  const result = await FoundedBug.find({
+  const verifiedProjectBugs = await FoundedBug.find({
+    project: projectId,
+    state: "Verify",
+  }).populate("pentester", "firstName lastName profileImageUrl");
+
+  const userProjectReports = await FoundedBug.find({
     project: projectId,
     pentester: userId,
-  });
+  }).populate("pentester", "firstName lastName profileImageUrl");
 
-  res.status(200).json(result);
+  const mergedResults = new Map();
+  for (const bug of [...verifiedProjectBugs, ...userProjectReports]) {
+    mergedResults.set(String(bug._id), bug);
+  }
+
+  res.status(200).json(Array.from(mergedResults.values()));
 };
 
 const getAllBugsForReport = async (req, res) => {
@@ -1359,7 +1369,7 @@ const puppeteer = require("puppeteer");
 async function generateLongPdf(url, outputFile = "report", parsedCookies) {
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: "/usr/bin/google-chrome", 
+    // executablePath: "/usr/bin/google-chrome", 
     defaultViewport: null,
     args: ["--no-sandbox", "--disable-setuid-sandbox", '--disable-gpu', '--disable-dev-shm-usage'],
   });

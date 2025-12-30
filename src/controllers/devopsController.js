@@ -247,9 +247,6 @@ const getDevOpsInfo = async(req , res)=>{
 const getProjectUrl = async(req , res)=>{
 
   const {projectId} = req.query 
-
-  console.log("project Id 111111111: " , projectId)
-
   const endpoints = await  DevOpsInfo.findOne({project:projectId})
 
   console.log("endpoints : " , endpoints)
