@@ -1021,7 +1021,7 @@ const getProjectById = async (req, res) => {
 
   const result = await project.findOne({ _id: projectId })
 
-  console.log(result)
+  console.log("line 1024 : ", result)
 
   res.status(200).json(result)
 
@@ -1692,7 +1692,20 @@ const createReport = async (req, res) => {
 };
 
 
+const fetchOriginalProject = async(req , res )=>{
 
+
+  const { projectId } = req.query
+
+  const result = await project.findOne({ _id: projectId })
+
+  console.log("line 1702 : ", result)
+
+  res.status(200).json(result)
+
+
+
+}
 
 module.exports = {
   getUserProjects,
@@ -1722,6 +1735,8 @@ module.exports = {
   updateReadAccess, getIdentifier,
   pocsArchive,
   saveProjectDates,
-  createReport
+  createReport, 
+  fetchOriginalProject 
+
 
 };
