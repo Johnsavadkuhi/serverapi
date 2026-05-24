@@ -857,6 +857,75 @@ const WebOwasp = [
           "wstg":"APIT-01",
           "labelfa":"آزمون GraphQL",
           "children": []
+        }, 
+         {
+          "id": "4.12.2",
+          "label": "Broken Object Level Authorization",
+          "wstg":"APIT-02",
+          "labelfa":"احراز هویت ناقص/معیوب در سطح آبجکت",
+          "children": []
+        }, 
+         {
+          "id": "4.12.3",
+          "label": "Broken Authentication",
+          "wstg":"APIT-03",
+          "labelfa":"شکست احراز هویت",
+          "children": []
+        } ,{
+          "id": "4.12.4",
+          "label": "Broken Object Property Level Authorization",
+          "wstg":"APIT-04",
+          "labelfa":"احراز هویت معیوب در سطح فیلد/خصوصیت آبجکت",
+          "children": []
+        }, 
+         {
+          "id": "4.12.5",
+          "label": "Unrestricted Resource Consumption",
+          "wstg":"APIT-05",
+          "labelfa":"مصرف نامحدود منابع",
+          "children": []
+        }, 
+         {
+          "id": "4.12.6",
+          "label": "Broken Function Level Authorization",
+          "wstg":"APIT-06",
+          "labelfa":"احراز هویت معیوب در سطح عملیات",
+          "children": []
+        }, 
+         {
+          "id": "4.12.7",
+          "label": "Unrestricted Access to Sensitive Business Flows",
+          "wstg":"APIT-07",
+          "labelfa":"دسترسی نامحدود/بی‌قید و شرط به جریان‌های حساس کسب‌وکار",
+          "children": []
+        }, 
+         {
+          "id": "4.12.8",
+          "label": "Server Side Request Forgery",
+          "wstg":"APIT-08",
+          "labelfa":"جعل درخواست از سمت سرور",
+          "children": []
+        }, 
+         {
+          "id": "4.12.9",
+          "label": "Security Misconfiguration",
+          "wstg":"APIT-09",
+          "labelfa":"تنظیمات نادرست امنیتی",
+          "children": []
+        }, 
+         {
+          "id": "4.12.10",
+          "label": "Improper Inventory Management",
+          "wstg":"APIT-10",
+          "labelfa":"مدیریت ضعیف دارایی‌ها",
+          "children": []
+        }, 
+         {
+          "id": "4.12.11",
+          "label": "Unsafe Consumption of APIs",
+          "wstg":"APIT-11",
+          "labelfa":"مصرف (استفاده) ناامن از APIها",
+          "children": []
         }
       ]
     }
